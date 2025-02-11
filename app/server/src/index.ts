@@ -1,10 +1,14 @@
 import express from 'express';
 import { connectDB } from './config/database';
+import router from './router';
 
 const app = express();
 
 //middleware
 app.use(express.json());
+
+// router
+app.use('/api', router);
 
 // db connection with proper async handling
 const startServer = async () => {

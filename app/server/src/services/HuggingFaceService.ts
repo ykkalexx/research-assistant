@@ -57,7 +57,7 @@ export class HuggingFaceService {
     return Array.from(new Set(references));
   }
 
-  // this function uses Roberta to answer a question from the text
+  // this function uses Roberta model to answer a question from the text
   async answerQuestion(context: string, question: string): Promise<string> {
     const response = await this.hf.questionAnswer({
       model: 'deepset/roberta-base-squad2',
