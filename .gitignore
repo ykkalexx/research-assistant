@@ -2,3 +2,9 @@
 node_modules
 .env
 .vscode
+storage/uploads/*
+storage/processed/*
+storage/cache/*
+!storage/uploads/.gitkeep
+!storage/processed/.gitkeep
+!storage/cache/.gitkeep
