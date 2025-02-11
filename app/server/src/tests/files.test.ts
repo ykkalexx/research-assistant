@@ -2,6 +2,7 @@ import { FileControllers } from '@/controllers/FileControllers';
 import { Request, Response } from 'express';
 import { HuggingFaceService } from '@/services/HuggingFaceService';
 import db from '@/config/database';
+import { Readable } from 'stream';
 
 // Mock dependencies
 jest.mock('@/services/HuggingFaceService');
@@ -23,10 +24,16 @@ describe('FileControllers', () => {
     fileControllers = new FileControllers();
     mockRequest = {
       file: {
+        fieldname: 'file',
         originalname: 'test.pdf',
+        encoding: '7bit',
+        mimetype: 'application/pdf',
+        destination: '/tmp',
         filename: 'test-123.pdf',
         path: '/tmp/test-123.pdf',
         size: 1024,
+        stream: new Readable(),
+        buffer: Buffer.from('test'),
       },
       body: {},
     };
