@@ -1,5 +1,5 @@
 import { HfInference } from '@huggingface/inference';
-import * as pdfParse from 'pdf-parse';
+import PdfParse from 'pdf-parse';
 import fs from 'fs';
 import dotenv from 'dotenv';
 
@@ -14,9 +14,14 @@ export class HuggingFaceService {
 
   // im using this function to extract the text from the pdf file
   async extractTextFromPDF(filePath: string): Promise<string> {
-    const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdfParse(dataBuffer);
-    return data.text;
+    try {
+      const dataBuffer = fs.readFileSync(filePath);
+      const data = await PdfParse(dataBuffer);
+      return data.text;
+    } catch (error) {
+      console.error('Error parsing PDF:', error);
+      throw new Error('Failed to extract text from PDF');
+    }
   }
 
   // this function uses Bart to summarize the text from the pdf file
