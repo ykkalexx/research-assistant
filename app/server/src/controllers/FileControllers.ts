@@ -59,6 +59,8 @@ export class FileControllers {
     }
   }
 
+  // This method will handle the ask question process
+  // It will extract the answer from the document using the Hugging Face model
   async askQuestion(req: Request, res: Response): Promise<Response> {
     try {
       const { documentId, question } = req.body;
@@ -85,6 +87,51 @@ export class FileControllers {
       );
 
       return res.status(200).json({ answer });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  }
+
+  async fetchSummaryById(req: Request, res: Response) {
+    try {
+      const { id } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ message: "Missing 'id' parameter" });
+      }
+
+      const summary = await db.execute(
+        `SELECT summary FROM documents WHERE id = ?`,
+        [id]
+      );
+
+      return res.status(200).json({ summary: summary });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  }
+
+  async fetchReferencesById(req: Request, res: Response) {
+    try {
+      const { id } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ message: "Missing 'id' parameter" });
+      }
+
+      const refs = await db.execute(`SELECT refs FROM documents WHERE id = ?`, [
+        id,
+      ]);
+
+      return res.status(200).json({ summary: refs });
     } catch (error) {
       console.error(error);
       return res.status(500).json({
