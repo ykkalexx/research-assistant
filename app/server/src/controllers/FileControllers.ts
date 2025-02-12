@@ -2,7 +2,8 @@ import { upload } from '@/config/multer';
 import { Request, Response } from 'express';
 import { HuggingFaceService } from '@/services/HuggingFaceService';
 import db from '@/config/database';
-import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
+import { RowDataPacket } from 'mysql2/promise';
+import { PdfService } from '@/services/PdfService';
 
 // Define interfaces for type safety
 interface DocumentRow extends RowDataPacket {
@@ -18,99 +19,29 @@ interface DocumentRow extends RowDataPacket {
 }
 
 const hfService = new HuggingFaceService();
+const pdf = new PdfService();
 
 export class FileControllers {
-  // This method will handle the file upload process
-  private async handleFileUpload(
-    req: Request,
-    res: Response
-  ): Promise<{ file: Express.Multer.File } | Response> {
-    return new Promise(resolve => {
-      upload.single('file')(req, res, err => {
-        if (err) {
-          resolve(res.status(400).json({ message: err.message }));
-          return;
-        }
-
-        if (!req.file) {
-          resolve(res.status(400).json({ message: 'No file uploaded' }));
-          return;
-        }
-
-        resolve({ file: req.file });
-      });
-    });
-  }
-
-  // Process the PDF file and extract necessary information
-  private async processPdfContent(
-    filePath: string
-  ): Promise<
-    { text: string; summary: string; references: string[] } | Response
-  > {
-    try {
-      const text = await hfService.extractTextFromPDF(filePath);
-      const summary = await hfService.summarizeText(text);
-      const references = await hfService.extractReferences(text);
-
-      if (!summary || !references) {
-        throw new Error('Failed to generate summary or references');
-      }
-
-      return { text, summary, references };
-    } catch (error) {
-      console.error('Processing error:', error);
-      throw error;
-    }
-  }
-
-  private async saveToDatabase(
-    file: Express.Multer.File,
-    text: string,
-    summary: string,
-    references: string[]
-  ): Promise<void> {
-    try {
-      await db.execute(
-        `INSERT INTO documents (original_name, filename, file_path, size, summary, refs, processed, full_text) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          file.originalname,
-          file.filename,
-          file.path,
-          file.size,
-          summary,
-          JSON.stringify(references),
-          true,
-          text,
-        ]
-      );
-    } catch (error) {
-      console.error('Database error:', error);
-      throw error;
-    }
-  }
-
   // This method will handle the file upload process
   // It will extract text from the PDF file, summarize the text, extract references, and save the data to the database
   async uploadPdf(req: Request, res: Response): Promise<Response> {
     try {
-      // Step 1: Handle file upload
-      const uploadResult = await this.handleFileUpload(req, res);
+      // handle file upload
+      const uploadResult = await pdf.handleFileUpload(req, res);
       if ('status' in uploadResult) {
         return uploadResult;
       }
       const { file } = uploadResult;
 
-      // Step 2: Process PDF content
-      const processResult = await this.processPdfContent(file.path);
+      // process PDF content
+      const processResult = await pdf.processPdfContent(file.path);
       if ('status' in processResult) {
         return processResult;
       }
       const { text, summary, references } = processResult;
 
-      // Step 3: Save to database
-      await this.saveToDatabase(file, text, summary, references);
+      // saving to database
+      await pdf.saveToDatabase(file, text, summary, references);
 
       // Return success response
       return res.status(200).json({
