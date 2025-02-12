@@ -8,3 +8,4 @@ storage/cache/*
 !storage/uploads/.gitkeep
 !storage/processed/.gitkeep
 !storage/cache/.gitkeep
+storage
