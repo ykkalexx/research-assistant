@@ -1,5 +1,5 @@
 import express from 'express';
-import { connectDB } from './config/database';
+import db from './config/database';
 import router from './router';
 import cors from 'cors';
 
@@ -26,10 +26,11 @@ app.use('/api', router);
 // db connection with proper async handling
 const startServer = async () => {
   try {
-    await connectDB;
+    await db.getConnection();
+    console.log('Connected to database');
 
     app.listen(3000, () => {
-      console.log('Server is running on port 8000');
+      console.log('Server is running on port 3000');
     });
   } catch (error) {
     console.error('Failed to start server:', error);

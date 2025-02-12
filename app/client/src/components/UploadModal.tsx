@@ -20,8 +20,10 @@ export const UploadModal = () => {
       const formData = new FormData();
       formData.append("file", file);
 
+      console.log("hit 1");
+
       const response = await axios.post(
-        "http://localhost:3001/api/upload",
+        "http://localhost:3000/api/upload",
         formData,
         {
           headers: {
@@ -31,6 +33,7 @@ export const UploadModal = () => {
       );
 
       if (response.status === 200) {
+        console.log("it worked yay :3");
         setOpen(false);
         setFile(null);
       }
@@ -56,7 +59,7 @@ export const UploadModal = () => {
         <div className="space-y-4">
           <Dropzone
             onDrop={(files) => setFile(files[0])}
-            maxSize={5 * 1024 ** 2} // 5MB
+            maxSize={10 * 1024 * 1024}
             accept={["application/pdf"]}
             loading={loading}
           >
@@ -80,7 +83,7 @@ export const UploadModal = () => {
                   Drag & drop PDF here or click to select
                 </Text>
                 <Text size="sm" color="dimmed" inline mt={7}>
-                  File should not exceed 5MB
+                  File should not exceed 10MB
                 </Text>
               </div>
             </Group>
