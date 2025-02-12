@@ -21,98 +21,111 @@ const hfService = new HuggingFaceService();
 
 export class FileControllers {
   // This method will handle the file upload process
-  // It will extract text from the PDF file, summarize the text, extract references, and save the data to the database
-  async uploadPdf(req: Request, res: Response): Promise<Response> {
+  private async handleFileUpload(
+    req: Request,
+    res: Response
+  ): Promise<{ file: Express.Multer.File } | Response> {
     return new Promise(resolve => {
-      upload.single('file')(req, res, async err => {
-        try {
-          if (err) {
-            return resolve(res.status(400).json({ message: err.message }));
-          }
-
-          if (!req.file) {
-            return resolve(
-              res.status(400).json({ message: 'No file uploaded' })
-            );
-          }
-
-          // Process text extraction first
-          let text: string;
-
-          try {
-            text = await hfService.extractTextFromPDF(req.file.path);
-          } catch (error) {
-            console.error('Text extraction error:', error);
-            return resolve(
-              res
-                .status(500)
-                .json({ message: 'Failed to extract text from PDF' })
-            );
-          }
-
-          // Process summarization and references sequentially
-          let summary: string;
-          let references: string[];
-
-          try {
-            summary = await hfService.summarizeText(text);
-            references = await hfService.extractReferences(text);
-          } catch (error) {
-            console.error('Processing error:', error);
-            return resolve(
-              res.status(500).json({ message: 'Failed to process document' })
-            );
-          }
-
-          // Only proceed if we have both summary and references
-          if (!summary || !references) {
-            return resolve(
-              res
-                .status(500)
-                .json({ message: 'Failed to generate summary or references' })
-            );
-          }
-
-          try {
-            const [resultHeader] = await db.execute(
-              `INSERT INTO documents (original_name, filename, file_path, size, summary, refs, processed, full_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                req.file.originalname,
-                req.file.filename,
-                req.file.path,
-                req.file.size,
-                summary,
-                JSON.stringify(references),
-                true,
-                text,
-              ]
-            );
-
-            return resolve(
-              res.status(200).json({
-                message: 'File processed successfully',
-                document: {
-                  summary,
-                  references,
-                },
-              })
-            );
-          } catch (error) {
-            console.error('Database error:', error);
-            return resolve(
-              res.status(500).json({ message: 'Failed to save to database' })
-            );
-          }
-        } catch (error: any) {
-          console.error('Unknown error:', error);
-          return resolve(
-            res.status(500).json({
-              message: error.message || 'An unknown error occurred',
-            })
-          );
+      upload.single('file')(req, res, err => {
+        if (err) {
+          resolve(res.status(400).json({ message: err.message }));
+          return;
         }
+
+        if (!req.file) {
+          resolve(res.status(400).json({ message: 'No file uploaded' }));
+          return;
+        }
+
+        resolve({ file: req.file });
       });
     });
+  }
+
+  // Process the PDF file and extract necessary information
+  private async processPdfContent(
+    filePath: string
+  ): Promise<
+    { text: string; summary: string; references: string[] } | Response
+  > {
+    try {
+      const text = await hfService.extractTextFromPDF(filePath);
+      const summary = await hfService.summarizeText(text);
+      const references = await hfService.extractReferences(text);
+
+      if (!summary || !references) {
+        throw new Error('Failed to generate summary or references');
+      }
+
+      return { text, summary, references };
+    } catch (error) {
+      console.error('Processing error:', error);
+      throw error;
+    }
+  }
+
+  private async saveToDatabase(
+    file: Express.Multer.File,
+    text: string,
+    summary: string,
+    references: string[]
+  ): Promise<void> {
+    try {
+      await db.execute(
+        `INSERT INTO documents (original_name, filename, file_path, size, summary, refs, processed, full_text) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          file.originalname,
+          file.filename,
+          file.path,
+          file.size,
+          summary,
+          JSON.stringify(references),
+          true,
+          text,
+        ]
+      );
+    } catch (error) {
+      console.error('Database error:', error);
+      throw error;
+    }
+  }
+
+  // This method will handle the file upload process
+  // It will extract text from the PDF file, summarize the text, extract references, and save the data to the database
+  async uploadPdf(req: Request, res: Response): Promise<Response> {
+    try {
+      // Step 1: Handle file upload
+      const uploadResult = await this.handleFileUpload(req, res);
+      if ('status' in uploadResult) {
+        return uploadResult;
+      }
+      const { file } = uploadResult;
+
+      // Step 2: Process PDF content
+      const processResult = await this.processPdfContent(file.path);
+      if ('status' in processResult) {
+        return processResult;
+      }
+      const { text, summary, references } = processResult;
+
+      // Step 3: Save to database
+      await this.saveToDatabase(file, text, summary, references);
+
+      // Return success response
+      return res.status(200).json({
+        message: 'File processed successfully',
+        document: {
+          summary,
+          references,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error in uploadPdf:', error);
+      return res.status(500).json({
+        message: error.message || 'An unknown error occurred',
+      });
+    }
   }
 
   async askQuestion(req: Request, res: Response): Promise<Response> {
