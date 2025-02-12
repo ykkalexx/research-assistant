@@ -1,8 +1,21 @@
 import express from 'express';
 import { connectDB } from './config/database';
 import router from './router';
+import cors from 'cors';
 
 const app = express();
+
+// Configure CORS with specific options
+const corsOptions = {
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+
+// cors config
+app.use(cors(corsOptions));
 
 //middleware
 app.use(express.json());
