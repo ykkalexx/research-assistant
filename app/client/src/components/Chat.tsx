@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../config/api";
 
 interface Message {
   id: string;
@@ -26,7 +26,7 @@ export const Chat = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:3000/api/question", {
+      const response = await api.post("/question", {
         documentId: 1,
         question: userMessage.content,
       });
@@ -60,7 +60,7 @@ export const Chat = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2">
+      <div className="flex-1 p-2 mb-4 space-y-4 overflow-y-auto">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -90,7 +90,7 @@ export const Chat = () => {
         )}
       </div>
 
-      <div className="relative p-2 bg-[#303030] rounded-xl shadow-lg border border-[#2A2B32]">
+      <div className="relative items-center p-2 bg-[#303030] rounded-xl shadow-lg border border-[#2A2B32]">
         <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}

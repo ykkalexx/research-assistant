@@ -2,6 +2,10 @@ import express from 'express';
 import db from './config/database';
 import router from './router';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { UsersControllers } from './controllers/UsersController';
+
+const session = new UsersControllers();
 
 const app = express();
 
@@ -19,6 +23,8 @@ app.use(cors(corsOptions));
 
 //middleware
 app.use(express.json());
+app.use(cookieParser());
+app.use(session.sessionCookie);
 
 // router
 app.use('/api', router);

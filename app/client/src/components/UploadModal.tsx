@@ -2,7 +2,7 @@ import { Modal, Button, Text, Group } from "@mantine/core";
 import { useState } from "react";
 import { Dropzone } from "@mantine/dropzone";
 import { IconUpload, IconX, IconFile } from "@tabler/icons-react";
-import axios from "axios";
+import api from "../config/api";
 
 export const UploadModal = () => {
   const [open, setOpen] = useState(false);
@@ -20,22 +20,16 @@ export const UploadModal = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      console.log("hit 1");
-
-      const response = await axios.post(
-        "http://localhost:3000/api/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const response = await api.post("/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       if (response.status === 200) {
-        console.log("it worked yay :3");
         setOpen(false);
         setFile(null);
+        // You could add a success notification here
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload file");
@@ -63,11 +57,7 @@ export const UploadModal = () => {
             accept={["application/pdf"]}
             loading={loading}
           >
-            <Group
-              position="center"
-              spacing="xl"
-              style={{ minHeight: 220, pointerEvents: "none" }}
-            >
+            <Group style={{ minHeight: 220, pointerEvents: "none" }}>
               <Dropzone.Accept>
                 <IconUpload size={50} stroke={1.5} color="blue" />
               </Dropzone.Accept>
@@ -90,16 +80,16 @@ export const UploadModal = () => {
           </Dropzone>
 
           {file && (
-            <div className="p-4 bg-gray-50 rounded-md">
+            <div className="p-4 rounded-md bg-gray-50">
               <Text>Selected file: {file.name}</Text>
             </div>
           )}
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-md">{error}</div>
+            <div className="p-4 text-red-600 rounded-md bg-red-50">{error}</div>
           )}
 
-          <Group position="right" mt="md">
+          <Group mt="md">
             <Button
               variant="outline"
               onClick={() => setOpen(false)}

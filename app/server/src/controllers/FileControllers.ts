@@ -1,9 +1,12 @@
-import { upload } from '@/config/multer';
 import { Request, Response } from 'express';
 import { HuggingFaceService } from '@/services/HuggingFaceService';
 import db from '@/config/database';
 import { RowDataPacket } from 'mysql2/promise';
 import { PdfService } from '@/services/PdfService';
+
+interface SessionRequest extends Request {
+  sessionId?: string;
+}
 
 // Define interfaces for type safety
 interface DocumentRow extends RowDataPacket {
@@ -24,7 +27,7 @@ const pdf = new PdfService();
 export class FileControllers {
   // This method will handle the file upload process
   // It will extract text from the PDF file, summarize the text, extract references, and save the data to the database
-  async uploadPdf(req: Request, res: Response): Promise<Response> {
+  async uploadPdf(req: SessionRequest, res: Response): Promise<Response> {
     try {
       // handle file upload
       const uploadResult = await pdf.handleFileUpload(req, res);
@@ -41,7 +44,7 @@ export class FileControllers {
       const { text, summary, references } = processResult;
 
       // saving to database
-      await pdf.saveToDatabase(file, text, summary, references);
+      await pdf.saveToDatabase(file, text, summary, references, req.sessionId!);
 
       // Return success response
       return res.status(200).json({
@@ -61,7 +64,7 @@ export class FileControllers {
 
   // This method will handle the ask question process
   // It will extract the answer from the document using the Hugging Face model
-  async askQuestion(req: Request, res: Response): Promise<Response> {
+  async askQuestion(req: SessionRequest, res: Response): Promise<Response> {
     try {
       const { documentId, question } = req.body;
 
@@ -71,8 +74,8 @@ export class FileControllers {
 
       //@ts-ignore
       const [rows] = await db.execute<DocumentRow[]>(
-        'SELECT * FROM documents WHERE id = ?',
-        [documentId]
+        'SELECT * FROM documents WHERE id = ? AND session_id = ?',
+        [documentId, req.sessionId]
       );
 
       const document = rows[0];
@@ -96,7 +99,7 @@ export class FileControllers {
     }
   }
 
-  async fetchSummaryById(req: Request, res: Response) {
+  async fetchSummaryById(req: SessionRequest, res: Response) {
     try {
       const { id } = req.body;
 
@@ -105,8 +108,8 @@ export class FileControllers {
       }
 
       const summary = await db.execute(
-        `SELECT summary FROM documents WHERE id = ?`,
-        [id]
+        'SELECT summary FROM documents WHERE id = ? AND session_id = ?',
+        [id, req.sessionId]
       );
 
       return res.status(200).json({ summary: summary });
