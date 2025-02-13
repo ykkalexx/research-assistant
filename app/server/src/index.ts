@@ -3,9 +3,7 @@ import db from './config/database';
 import router from './router';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { UsersControllers } from './controllers/UsersController';
-
-const session = new UsersControllers();
+import { sessionMiddleware } from './middleware/session';
 
 const app = express();
 
@@ -24,7 +22,7 @@ app.use(cors(corsOptions));
 //middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(session.sessionCookie);
+app.use(sessionMiddleware);
 
 // router
 app.use('/api', router);
