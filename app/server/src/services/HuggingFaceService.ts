@@ -75,29 +75,27 @@ export class HuggingFaceService {
     try {
       const chunks = this.splitTextIntoChunks(text);
       const summaries: string[] = [];
-      console.log('hit summarizeText');
 
-      // Process chunks sequentially instead of in parallel
+      // Process chunks with better parameters
       for (const chunk of chunks) {
         try {
           const result = await this.retry(async () => {
-            console.log('hit 2');
             const response = await this.hf.summarization({
               model: 'facebook/bart-large-cnn',
               inputs: chunk,
               parameters: {
-                max_length: 100,
-                min_length: 20,
-                temperature: 0.7,
+                max_length: 250, // Increased for more detailed summaries
+                min_length: 50,
+                top_p: 0.9, // Nucleus sampling for better coherence
+                top_k: 50, // Top-k sampling for diversity
+                temperature: 0.8, // Slightly increased creativity
+                repetition_penalty: 1.5, // Avoid repetition
               },
             });
             return response.summary_text;
           });
 
           if (result) summaries.push(result);
-
-          // Add delay between API calls
-          console.log('summarizeText succesfully');
           await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
           console.error('Chunk summarization error:', error);
@@ -150,13 +148,32 @@ export class HuggingFaceService {
 
   // this function uses Roberta model to answer a question from the text
   async answerQuestion(context: string, question: string): Promise<string> {
-    const response = await this.hf.questionAnswer({
-      model: 'deepset/roberta-base-squad2',
-      inputs: {
-        question,
-        context,
-      },
-    });
-    return response.answer;
+    try {
+      // Use a more focused context window around potential answers
+      const chunks = this.splitTextIntoChunks(context);
+      const answers: string[] = [];
+
+      for (const chunk of chunks) {
+        const response = await this.hf.questionAnswer({
+          model: 'deepset/roberta-base-squad2',
+          inputs: {
+            question,
+            context: chunk,
+          },
+        });
+
+        if (response.answer && response.answer.trim()) {
+          answers.push(response.answer);
+        }
+      }
+
+      // Combine and return the best answer
+      return answers.length > 0
+        ? answers.reduce((a, b) => (a.length > b.length ? a : b))
+        : "I couldn't find a specific answer to that question in the document.";
+    } catch (error) {
+      console.error('Question answering error:', error);
+      throw new Error('Failed to answer question');
+    }
   }
 }
