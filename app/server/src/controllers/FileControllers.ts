@@ -145,4 +145,25 @@ export class FileControllers {
       });
     }
   }
+
+  async fetchDocumentsBySessionId(req: SessionRequest, res: Response) {
+    try {
+      if (!req.sessionId) {
+        return res.status(400).json({ message: 'No session found' });
+      }
+
+      const [rows] = await db.execute<DocumentRow[]>(
+        'SELECT * FROM documents WHERE session_id = ?',
+        [req.sessionId]
+      );
+
+      return res.status(200).json({ documents: rows });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  }
 }

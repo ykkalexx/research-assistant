@@ -7,6 +7,7 @@ const files = new FileControllers();
 // This route is used to upload a PDF file and ask a question
 router.post('/upload', files.uploadPdf);
 router.post('/question', files.askQuestion);
+router.get('/documents', files.fetchDocumentsBySessionId);
 
 // This route is used to initialize the session for cookies based session management
 router.get('/init-session', (req, res) => {
