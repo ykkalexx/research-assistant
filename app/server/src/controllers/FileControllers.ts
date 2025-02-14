@@ -4,22 +4,10 @@ import db from '@/config/database';
 import { RowDataPacket } from 'mysql2/promise';
 import { PdfService } from '@/services/PdfService';
 import { io } from '../index';
+import { DocumentRow } from '@/interfaces';
 
 interface SessionRequest extends Request {
   sessionId?: string;
-}
-
-// Define interfaces for type safety
-interface DocumentRow extends RowDataPacket {
-  id: number;
-  full_text: string;
-  summary: string;
-  refs: string;
-  original_name: string;
-  filename: string;
-  file_path: string;
-  size: number;
-  processed: boolean;
 }
 
 const hfService = new HuggingFaceService();
@@ -27,7 +15,6 @@ const pdf = new PdfService();
 
 export class FileControllers {
   // This method will handle the file upload process
-  // It will extract text from the PDF file, summarize the text, extract references, and save the data to the database
   async uploadPdf(req: SessionRequest, res: Response): Promise<Response> {
     try {
       // handle file upload

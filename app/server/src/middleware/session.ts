@@ -27,8 +27,8 @@ export const sessionMiddleware = async (
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax', // Changed from 'strict' to 'lax'
-        path: '/', // Ensure cookie is available across all paths
+        sameSite: 'lax',
+        path: '/',
       });
     }
 

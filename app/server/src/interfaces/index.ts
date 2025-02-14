@@ -1,3 +1,5 @@
+import { RowDataPacket } from 'mysql2/promise';
+
 export interface DocumentAttributes {
   id: string;
   originalName: string;
@@ -7,5 +9,17 @@ export interface DocumentAttributes {
   uploadDate: Date;
   summary?: string;
   references?: string[];
+  processed: boolean;
+}
+
+export interface DocumentRow extends RowDataPacket {
+  id: number;
+  full_text: string;
+  summary: string;
+  refs: string;
+  original_name: string;
+  filename: string;
+  file_path: string;
+  size: number;
   processed: boolean;
 }
