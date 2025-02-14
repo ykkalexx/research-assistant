@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../config/api";
 import { useWebSocket } from "../config/websocket";
+import { Button } from "@mantine/core";
 
 interface Message {
   id: string;
@@ -77,8 +78,65 @@ export const Chat = ({ documentId }: ChatProps) => {
     }
   }, [lastUpload, documentId]);
 
+  const handleRefs = async () => {
+    try {
+      setLoading(true);
+      const response = await api.post("/refs", { id: documentId });
+
+      // Create AI message for references
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        content: Array.isArray(response.data.refs)
+          ? "Here are the references:\n\n" + response.data.refs.join("\n")
+          : "No references found for this document.",
+        isAi: true,
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Failed to get references:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: "Sorry, I couldn't fetch the references. Please try again.",
+        isAi: true,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSummary = async () => {
+    try {
+      setLoading(true);
+      const response = await api.post("/summary", { id: documentId });
+
+      // Create AI message for summary
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        content: response.data.summary
+          ? "Here's the summary:\n\n" + response.data.summary
+          : "No summary found for this document.",
+        isAi: true,
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Failed to get summary:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: "Sorry, I couldn't fetch the summary. Please try again.",
+        isAi: true,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full max-h-[calc(100vh-300px)]">
+      {/* Messages Container */}
       <div className="flex-1 p-2 mb-4 space-y-4 overflow-y-auto">
         {messages.map((message) => (
           <div
@@ -86,7 +144,7 @@ export const Chat = ({ documentId }: ChatProps) => {
             className={`flex ${message.isAi ? "justify-start" : "justify-end"}`}
           >
             <div
-              className={`max-w-[80%] p-3 rounded-lg ${
+              className={`max-w-[80%] p-3 rounded-lg break-words whitespace-pre-wrap ${
                 message.isAi
                   ? "bg-[#444654] text-[#ECECF1]"
                   : "bg-[#343541] text-[#ECECF1]"
@@ -109,41 +167,55 @@ export const Chat = ({ documentId }: ChatProps) => {
         )}
       </div>
 
-      <div className="relative items-center p-2 bg-[#303030] rounded-xl shadow-lg border border-[#2A2B32]">
-        <textarea
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyPress={handleKeyPress}
-          rows={1}
-          className="w-full p-4 pr-10 bg-transparent text-[#ECECF1] placeholder-[#8E8EA0] outline-none resize-none font-light text-sm"
-          placeholder="Ask a question..."
-          style={{
-            caretColor: "#ECECF1",
-          }}
-        />
-        <button
-          className="absolute right-4 bottom-4 p-1 rounded-lg hover:bg-[#2A2B32] transition-colors duration-200"
-          disabled={!question.trim() || loading}
-          onClick={handleSubmit}
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            className={`${
-              question.trim() && !loading ? "text-[#ECECF1]" : "text-[#8E8EA0]"
-            } transition-colors duration-200`}
+      {/* Input Container */}
+      <div className="flex flex-col gap-5 mt-auto">
+        <div className="relative items-center p-2 bg-[#303030] rounded-xl shadow-lg border border-[#2A2B32]">
+          <textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyPress={handleKeyPress}
+            rows={1}
+            className="w-full p-4 pr-10 bg-transparent text-[#ECECF1] placeholder-[#8E8EA0] outline-none resize-none font-light text-sm"
+            placeholder="Ask a question..."
+            style={{
+              caretColor: "#ECECF1",
+            }}
+          />
+          <button
+            className="absolute right-4 bottom-4 p-1 rounded-lg hover:bg-[#2A2B32] transition-colors duration-200"
+            disabled={!question.trim() || loading}
+            onClick={handleSubmit}
           >
-            <path
-              d="M7 11L12 6L17 11M12 18V7"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              className={`${
+                question.trim() && !loading
+                  ? "text-[#ECECF1]"
+                  : "text-[#8E8EA0]"
+              } transition-colors duration-200`}
+            >
+              <path
+                d="M7 11L12 6L17 11M12 18V7"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex flex-row items-center justify-center gap-10">
+          <Button onClick={handleRefs} disabled={loading}>
+            Get References
+          </Button>
+          <Button onClick={handleSummary} disabled={loading}>
+            Get Summary
+          </Button>
+        </div>
       </div>
     </div>
   );

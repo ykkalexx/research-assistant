@@ -8,6 +8,8 @@ const files = new FileControllers();
 router.post('/upload', files.uploadPdf);
 router.post('/question', files.askQuestion);
 router.get('/documents', files.fetchDocumentsBySessionId);
+router.post('/refs', files.fetchReferencesById);
+router.post('/summary', files.fetchSummaryById);
 
 // This route is used to initialize the session for cookies based session management
 router.get('/init-session', (req, res) => {

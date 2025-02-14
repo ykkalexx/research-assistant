@@ -109,12 +109,16 @@ export class FileControllers {
         return res.status(400).json({ message: "Missing 'id' parameter" });
       }
 
-      const summary = await db.execute(
+      const [rows] = await db.execute<DocumentRow[]>(
         'SELECT summary FROM documents WHERE id = ? AND session_id = ?',
         [id, req.sessionId]
       );
 
-      return res.status(200).json({ summary: summary });
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      return res.status(200).json({ summary: rows[0].summary });
     } catch (error) {
       console.error(error);
       return res.status(500).json({

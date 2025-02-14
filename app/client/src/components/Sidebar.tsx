@@ -10,7 +10,12 @@ interface Document {
   created_at: string;
 }
 
-export const Sidebar = () => {
+interface SidebarProps {
+  onDocumentSelect: (docId: number) => void;
+  selectedDocId: number | null;
+}
+
+export const Sidebar = ({ onDocumentSelect, selectedDocId }: SidebarProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
@@ -56,7 +61,12 @@ export const Sidebar = () => {
             documents.map((doc) => (
               <div
                 key={doc.id}
-                className="p-2 rounded hover:bg-[#212121] cursor-pointer transition-colors"
+                onClick={() => onDocumentSelect(doc.id)}
+                className={`p-2 rounded cursor-pointer transition-colors ${
+                  selectedDocId === doc.id
+                    ? "bg-[#2A2B32] text-white"
+                    : "hover:bg-[#212121]"
+                }`}
               >
                 <h3 className="text-[#d1d1d1] text-sm font-medium truncate">
                   {doc.original_name}

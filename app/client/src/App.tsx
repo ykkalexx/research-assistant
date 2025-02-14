@@ -21,6 +21,10 @@ function App() {
 
   console.log("selectedDocId", selectedDocId);
 
+  const handleDocumentSelect = (docId: number) => {
+    setSelectedDocId(docId);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#212121]">
       <nav className="w-full px-6 py-4 flex-none bg-[#171717]">
@@ -30,7 +34,10 @@ function App() {
       </nav>
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        <Sidebar
+          onDocumentSelect={handleDocumentSelect}
+          selectedDocId={selectedDocId}
+        />
         <main className="container flex flex-col flex-1 px-4 py-8 mx-auto overflow-hidden">
           <div className="w-full max-w-4xl mx-auto">
             <div className="mb-8 text-center">
@@ -45,13 +52,13 @@ function App() {
           </div>
 
           <div className="flex flex-col flex-1 h-full mt-auto">
-            <div className="w-full max-w-4xl p-6 mx-auto rounded-t-lg">
+            <div className="w-full h-full max-w-4xl p-6 mx-auto rounded-t-lg">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-white">
                   Ask Questions about your Research Paper
                 </h2>
               </div>
-              <div className="h-[400px] overflow-y-auto">
+              <div className="h-full overflow-y-auto">
                 {selectedDocId ? (
                   <Chat documentId={selectedDocId} />
                 ) : (
