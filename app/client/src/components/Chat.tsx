@@ -7,7 +7,11 @@ interface Message {
   isAi: boolean;
 }
 
-export const Chat = () => {
+interface ChatProps {
+  documentId: number;
+}
+
+export const Chat = ({ documentId }: ChatProps) => {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -27,7 +31,7 @@ export const Chat = () => {
 
     try {
       const response = await api.post("/question", {
-        documentId: 1,
+        documentId,
         question: userMessage.content,
       });
 

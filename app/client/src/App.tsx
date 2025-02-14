@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Chat } from "./components/Chat";
 import { UploadModal } from "./components/UploadModal";
 import api from "./config/api";
 
 function App() {
+  const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
+
   useEffect(() => {
     const initSession = async () => {
       try {
@@ -15,6 +17,8 @@ function App() {
 
     initSession();
   }, []);
+
+  console.log("selectedDocId", selectedDocId);
 
   return (
     <div className="flex flex-col h-screen bg-[#212121]">
@@ -31,7 +35,7 @@ function App() {
               Upload research papers and get AI-powered summaries, insights, and
               answers to your questions
             </p>
-            <UploadModal />
+            <UploadModal onUploadSuccess={(docId) => setSelectedDocId(docId)} />
           </div>
         </div>
 
@@ -43,7 +47,13 @@ function App() {
               </h2>
             </div>
             <div className="h-[400px] overflow-y-auto">
-              <Chat />
+              {selectedDocId ? (
+                <Chat documentId={selectedDocId} />
+              ) : (
+                <div className="flex items-center justify-center h-full text-[#8E8EA0]">
+                  Upload a document to start asking questions
+                </div>
+              )}
             </div>
           </div>
         </div>

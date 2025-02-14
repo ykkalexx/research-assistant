@@ -57,7 +57,7 @@ export class PdfService {
     sessionId: string
   ): Promise<void> {
     try {
-      await db.execute(
+      const [result] = await db.query(
         `INSERT INTO documents (
           original_name, filename, file_path, size, 
           summary, refs, processed, full_text, session_id
@@ -74,6 +74,9 @@ export class PdfService {
           sessionId,
         ]
       );
+
+      //@ts-ignore
+      return result.insertId;
     } catch (error) {
       console.error('Database error:', error);
       throw error;

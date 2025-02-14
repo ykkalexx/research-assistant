@@ -44,12 +44,19 @@ export class FileControllers {
       const { text, summary, references } = processResult;
 
       // saving to database
-      await pdf.saveToDatabase(file, text, summary, references, req.sessionId!);
+      const docId = await pdf.saveToDatabase(
+        file,
+        text,
+        summary,
+        references,
+        req.sessionId!
+      );
 
       // Return success response
       return res.status(200).json({
         message: 'File processed successfully',
         document: {
+          id: docId,
           summary,
           references,
         },

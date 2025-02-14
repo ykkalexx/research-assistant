@@ -4,7 +4,11 @@ import { Dropzone } from "@mantine/dropzone";
 import { IconUpload, IconX, IconFile } from "@tabler/icons-react";
 import api from "../config/api";
 
-export const UploadModal = () => {
+interface UploadModalProps {
+  onUploadSuccess: (docId: number) => void;
+}
+
+export const UploadModal = ({ onUploadSuccess }: UploadModalProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -27,9 +31,9 @@ export const UploadModal = () => {
       });
 
       if (response.status === 200) {
+        onUploadSuccess(response.data.document.id);
         setOpen(false);
         setFile(null);
-        // You could add a success notification here
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload file");
