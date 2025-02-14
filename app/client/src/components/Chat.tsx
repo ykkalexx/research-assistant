@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../config/api";
+import { useWebSocket } from "../config/websocket";
 
 interface Message {
   id: string;
@@ -15,6 +16,7 @@ export const Chat = ({ documentId }: ChatProps) => {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const { lastUpload } = useWebSocket();
 
   const handleSubmit = async () => {
     if (!question.trim() || loading) return;
@@ -61,6 +63,19 @@ export const Chat = ({ documentId }: ChatProps) => {
       handleSubmit();
     }
   };
+
+  useEffect(() => {
+    if (
+      // fucking typescript
+      lastUpload &&
+      typeof lastUpload === "object" &&
+      "id" in lastUpload &&
+      typeof lastUpload.id === "number" &&
+      lastUpload.id === documentId
+    ) {
+      setMessages([]);
+    }
+  }, [lastUpload, documentId]);
 
   return (
     <div className="flex flex-col h-full">

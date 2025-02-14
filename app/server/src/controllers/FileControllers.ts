@@ -3,6 +3,7 @@ import { HuggingFaceService } from '@/services/HuggingFaceService';
 import db from '@/config/database';
 import { RowDataPacket } from 'mysql2/promise';
 import { PdfService } from '@/services/PdfService';
+import { io } from '../index';
 
 interface SessionRequest extends Request {
   sessionId?: string;
@@ -51,6 +52,13 @@ export class FileControllers {
         references,
         req.sessionId!
       );
+
+      // Emit upload complete event
+      io.emit('upload_complete', {
+        id: docId,
+        summary,
+        references,
+      });
 
       // Return success response
       return res.status(200).json({
