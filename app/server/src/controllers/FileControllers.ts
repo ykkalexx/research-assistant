@@ -1,18 +1,18 @@
 import { Request, Response } from 'express';
-import { HuggingFaceService } from '@/services/HuggingFaceService';
 import db from '@/config/database';
 import { OpenAiService } from '@/services/OpenAiService';
 import { PdfService } from '@/services/PdfService';
 import { io } from '../index';
 import { DocumentRow } from '@/interfaces';
+import { CitationService } from '@/services/CitationService';
 
 interface SessionRequest extends Request {
   sessionId?: string;
 }
 
-const hfService = new HuggingFaceService();
 const pdf = new PdfService();
 const openai = new OpenAiService();
+const cit = new CitationService();
 
 export class FileControllers {
   // This method will handle the file upload process
@@ -165,6 +165,37 @@ export class FileControllers {
       );
 
       return res.status(200).json({ documents: rows });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  }
+
+  async generateCitation(req: SessionRequest, res: Response) {
+    try {
+      const { id, style } = req.body;
+
+      if (!id || !style) {
+        return res.status(400).json({ message: 'Missing required parameters' });
+      }
+
+      const [rows] = await db.execute<DocumentRow[]>(
+        'SELECT * FROM documents WHERE id = ? AND session_id = ?',
+        [id, req.sessionId]
+      );
+
+      const document = rows[0];
+
+      if (!document) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      const citation = cit.generateCitation(document.full_text, style);
+
+      return res.status(200).json({ citation });
     } catch (error) {
       console.error(error);
       return res.status(500).json({
