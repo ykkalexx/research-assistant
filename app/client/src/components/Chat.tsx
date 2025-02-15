@@ -13,11 +13,14 @@ interface ChatProps {
   documentId: number;
 }
 
+type CitationStyle = "APA" | "MLA" | "Chicago";
+
 export const Chat = ({ documentId }: ChatProps) => {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const { lastUpload } = useWebSocket();
+  const [showCitationDropdown, setShowCitationDropdown] = useState(false);
 
   const handleSubmit = async () => {
     if (!question.trim() || loading) return;
@@ -134,6 +137,35 @@ export const Chat = ({ documentId }: ChatProps) => {
     }
   };
 
+  const handleCitation = async (style: CitationStyle) => {
+    try {
+      setLoading(true);
+      setShowCitationDropdown(false);
+      const response = await api.post("/citation", { id: documentId, style });
+
+      // Create AI message for summary
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        content: response.data.citation
+          ? "Here's the citation:\n\n" + response.data.citation
+          : "No summary found for this document.",
+        isAi: true,
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Failed to get summary:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: "Sorry, I couldn't fetch the summary. Please try again.",
+        isAi: true,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-300px)]">
       {/* Messages Container */}
@@ -215,9 +247,27 @@ export const Chat = ({ documentId }: ChatProps) => {
           <MyBtn onClick={handleSummary} disabled={loading}>
             Get Summary
           </MyBtn>
-          <MyBtn onClick={handleSummary} disabled={loading}>
-            Get Citation
-          </MyBtn>
+          <div className="relative group">
+            <MyBtn
+              onClick={() => setShowCitationDropdown(!showCitationDropdown)}
+              disabled={loading}
+            >
+              Get Citation
+            </MyBtn>
+            {showCitationDropdown && (
+              <div className="absolute bottom-full mb-2 py-2 w-32 bg-[#303030] rounded-lg shadow-xl border border-[#2A2B32] z-10 left-1/2 transform -translate-x-1/2">
+                {(["APA", "MLA", "Chicago"] as CitationStyle[]).map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => handleCitation(style)}
+                    className="w-full px-4 py-2 text-left text-[#ECECF1] hover:bg-[#2A2B32] transition-colors"
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
