@@ -193,7 +193,9 @@ export class FileControllers {
         return res.status(404).json({ message: 'Document not found' });
       }
 
-      const citation = cit.generateCitation(document.full_text, style);
+      const citation = await cit.generateCitation(document.full_text, style);
+
+      console.log('Generated citation:', citation);
 
       return res.status(200).json({ citation });
     } catch (error) {
