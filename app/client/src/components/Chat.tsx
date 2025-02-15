@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../config/api";
 import { useWebSocket } from "../config/websocket";
-import { Button } from "@mantine/core";
+import MyBtn from "./MyBtn";
 
 interface Message {
   id: string;
@@ -209,12 +209,15 @@ export const Chat = ({ documentId }: ChatProps) => {
         </div>
 
         <div className="flex flex-row items-center justify-center gap-10">
-          <Button onClick={handleRefs} disabled={loading}>
+          <MyBtn onClick={handleRefs} disabled={loading}>
             Get References
-          </Button>
-          <Button onClick={handleSummary} disabled={loading}>
+          </MyBtn>
+          <MyBtn onClick={handleSummary} disabled={loading}>
             Get Summary
-          </Button>
+          </MyBtn>
+          <MyBtn onClick={handleSummary} disabled={loading}>
+            Get Citation
+          </MyBtn>
         </div>
       </div>
     </div>

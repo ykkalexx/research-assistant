@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { HuggingFaceService } from '@/services/HuggingFaceService';
 import db from '@/config/database';
-import { RowDataPacket } from 'mysql2/promise';
+import { OpenAiService } from '@/services/OpenAiService';
 import { PdfService } from '@/services/PdfService';
 import { io } from '../index';
 import { DocumentRow } from '@/interfaces';
@@ -12,6 +12,7 @@ interface SessionRequest extends Request {
 
 const hfService = new HuggingFaceService();
 const pdf = new PdfService();
+const openai = new OpenAiService();
 
 export class FileControllers {
   // This method will handle the file upload process
@@ -65,7 +66,7 @@ export class FileControllers {
   }
 
   // This method will handle the ask question process
-  // It will extract the answer from the document using the Hugging Face model
+  // It will extract the answer from the document using OpenAi api
   async askQuestion(req: SessionRequest, res: Response): Promise<Response> {
     try {
       const { documentId, question } = req.body;
@@ -74,7 +75,6 @@ export class FileControllers {
         return res.status(400).json({ message: 'Missing required parameters' });
       }
 
-      //@ts-ignore
       const [rows] = await db.execute<DocumentRow[]>(
         'SELECT * FROM documents WHERE id = ? AND session_id = ?',
         [documentId, req.sessionId]
@@ -86,10 +86,8 @@ export class FileControllers {
         return res.status(404).json({ message: 'Document not found' });
       }
 
-      const answer = await hfService.answerQuestion(
-        document.full_text,
-        question
-      );
+      // Use OpenAI instead of HuggingFace
+      const answer = await openai.answerQuestions(document.full_text, question);
 
       return res.status(200).json({ answer });
     } catch (error) {
@@ -128,7 +126,7 @@ export class FileControllers {
     }
   }
 
-  async fetchReferencesById(req: Request, res: Response) {
+  async fetchReferencesById(req: SessionRequest, res: Response) {
     try {
       const { id } = req.body;
 
@@ -136,11 +134,16 @@ export class FileControllers {
         return res.status(400).json({ message: "Missing 'id' parameter" });
       }
 
-      const refs = await db.execute(`SELECT refs FROM documents WHERE id = ?`, [
-        id,
-      ]);
+      const [rows] = await db.execute<DocumentRow[]>(
+        'SELECT summary FROM documents WHERE id = ? AND session_id = ?',
+        [id, req.sessionId]
+      );
 
-      return res.status(200).json({ summary: refs });
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      return res.status(200).json({ summary: rows[0].refs });
     } catch (error) {
       console.error(error);
       return res.status(500).json({

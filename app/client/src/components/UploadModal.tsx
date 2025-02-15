@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Dropzone } from "@mantine/dropzone";
 import { IconUpload, IconX, IconFile } from "@tabler/icons-react";
 import api from "../config/api";
+import MyBtn from "./MyBtn";
 
 interface UploadModalProps {
   onUploadSuccess: (docId: number) => void;
@@ -44,9 +45,9 @@ export const UploadModal = ({ onUploadSuccess }: UploadModalProps) => {
 
   return (
     <div className="font-light">
-      <Button onClick={() => setOpen(true)} color="blue">
+      <MyBtn onClick={() => setOpen(true)} color="blue">
         Upload PDF
-      </Button>
+      </MyBtn>
 
       <Modal
         opened={open}
