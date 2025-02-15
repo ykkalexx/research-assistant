@@ -2,9 +2,14 @@ import { Modal, Button, Text, Group } from "@mantine/core";
 import { useState } from "react";
 import { Dropzone } from "@mantine/dropzone";
 import { IconUpload, IconX, IconFile } from "@tabler/icons-react";
-import axios from "axios";
+import api from "../config/api";
+import MyBtn from "./MyBtn";
 
-export const UploadModal = () => {
+interface UploadModalProps {
+  onUploadSuccess: (docId: number) => void;
+}
+
+export const UploadModal = ({ onUploadSuccess }: UploadModalProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -20,20 +25,14 @@ export const UploadModal = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      console.log("hit 1");
-
-      const response = await axios.post(
-        "http://localhost:3000/api/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const response = await api.post("/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       if (response.status === 200) {
-        console.log("it worked yay :3");
+        onUploadSuccess(response.data.document.id);
         setOpen(false);
         setFile(null);
       }
@@ -46,9 +45,9 @@ export const UploadModal = () => {
 
   return (
     <div className="font-light">
-      <Button onClick={() => setOpen(true)} color="blue">
+      <MyBtn onClick={() => setOpen(true)} color="blue">
         Upload PDF
-      </Button>
+      </MyBtn>
 
       <Modal
         opened={open}
@@ -63,11 +62,7 @@ export const UploadModal = () => {
             accept={["application/pdf"]}
             loading={loading}
           >
-            <Group
-              position="center"
-              spacing="xl"
-              style={{ minHeight: 220, pointerEvents: "none" }}
-            >
+            <Group style={{ minHeight: 220, pointerEvents: "none" }}>
               <Dropzone.Accept>
                 <IconUpload size={50} stroke={1.5} color="blue" />
               </Dropzone.Accept>
@@ -90,16 +85,16 @@ export const UploadModal = () => {
           </Dropzone>
 
           {file && (
-            <div className="p-4 bg-gray-50 rounded-md">
+            <div className="p-4 rounded-md bg-gray-50">
               <Text>Selected file: {file.name}</Text>
             </div>
           )}
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-md">{error}</div>
+            <div className="p-4 text-red-600 rounded-md bg-red-50">{error}</div>
           )}
 
-          <Group position="right" mt="md">
+          <Group mt="md">
             <Button
               variant="outline"
               onClick={() => setOpen(false)}

@@ -53,12 +53,15 @@ export class PdfService {
     file: Express.Multer.File,
     text: string,
     summary: string,
-    references: string[]
+    references: string[],
+    sessionId: string
   ): Promise<void> {
     try {
-      await db.execute(
-        `INSERT INTO documents (original_name, filename, file_path, size, summary, refs, processed, full_text) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      const [result] = await db.query(
+        `INSERT INTO documents (
+          original_name, filename, file_path, size, 
+          summary, refs, processed, full_text, session_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           file.originalname,
           file.filename,
@@ -68,8 +71,12 @@ export class PdfService {
           JSON.stringify(references),
           true,
           text,
+          sessionId,
         ]
       );
+
+      //@ts-ignore
+      return result.insertId;
     } catch (error) {
       console.error('Database error:', error);
       throw error;

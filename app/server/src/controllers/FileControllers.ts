@@ -1,30 +1,22 @@
-import { upload } from '@/config/multer';
 import { Request, Response } from 'express';
 import { HuggingFaceService } from '@/services/HuggingFaceService';
 import db from '@/config/database';
-import { RowDataPacket } from 'mysql2/promise';
+import { OpenAiService } from '@/services/OpenAiService';
 import { PdfService } from '@/services/PdfService';
+import { io } from '../index';
+import { DocumentRow } from '@/interfaces';
 
-// Define interfaces for type safety
-interface DocumentRow extends RowDataPacket {
-  id: number;
-  full_text: string;
-  summary: string;
-  refs: string;
-  original_name: string;
-  filename: string;
-  file_path: string;
-  size: number;
-  processed: boolean;
+interface SessionRequest extends Request {
+  sessionId?: string;
 }
 
 const hfService = new HuggingFaceService();
 const pdf = new PdfService();
+const openai = new OpenAiService();
 
 export class FileControllers {
   // This method will handle the file upload process
-  // It will extract text from the PDF file, summarize the text, extract references, and save the data to the database
-  async uploadPdf(req: Request, res: Response): Promise<Response> {
+  async uploadPdf(req: SessionRequest, res: Response): Promise<Response> {
     try {
       // handle file upload
       const uploadResult = await pdf.handleFileUpload(req, res);
@@ -41,12 +33,26 @@ export class FileControllers {
       const { text, summary, references } = processResult;
 
       // saving to database
-      await pdf.saveToDatabase(file, text, summary, references);
+      const docId = await pdf.saveToDatabase(
+        file,
+        text,
+        summary,
+        references,
+        req.sessionId!
+      );
+
+      // Emit upload complete event
+      io.emit('upload_complete', {
+        id: docId,
+        summary,
+        references,
+      });
 
       // Return success response
       return res.status(200).json({
         message: 'File processed successfully',
         document: {
+          id: docId,
           summary,
           references,
         },
@@ -59,7 +65,9 @@ export class FileControllers {
     }
   }
 
-  async askQuestion(req: Request, res: Response): Promise<Response> {
+  // This method will handle the ask question process
+  // It will extract the answer from the document using OpenAi api
+  async askQuestion(req: SessionRequest, res: Response): Promise<Response> {
     try {
       const { documentId, question } = req.body;
 
@@ -67,10 +75,9 @@ export class FileControllers {
         return res.status(400).json({ message: 'Missing required parameters' });
       }
 
-      //@ts-ignore
       const [rows] = await db.execute<DocumentRow[]>(
-        'SELECT * FROM documents WHERE id = ?',
-        [documentId]
+        'SELECT * FROM documents WHERE id = ? AND session_id = ?',
+        [documentId, req.sessionId]
       );
 
       const document = rows[0];
@@ -79,12 +86,85 @@ export class FileControllers {
         return res.status(404).json({ message: 'Document not found' });
       }
 
-      const answer = await hfService.answerQuestion(
-        document.full_text,
-        question
-      );
+      // Use OpenAI instead of HuggingFace
+      const answer = await openai.answerQuestions(document.full_text, question);
 
       return res.status(200).json({ answer });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  }
+
+  async fetchSummaryById(req: SessionRequest, res: Response) {
+    try {
+      const { id } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ message: "Missing 'id' parameter" });
+      }
+
+      const [rows] = await db.execute<DocumentRow[]>(
+        'SELECT summary FROM documents WHERE id = ? AND session_id = ?',
+        [id, req.sessionId]
+      );
+
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      return res.status(200).json({ summary: rows[0].summary });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  }
+
+  async fetchReferencesById(req: SessionRequest, res: Response) {
+    try {
+      const { id } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ message: "Missing 'id' parameter" });
+      }
+
+      const [rows] = await db.execute<DocumentRow[]>(
+        'SELECT summary FROM documents WHERE id = ? AND session_id = ?',
+        [id, req.sessionId]
+      );
+
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      return res.status(200).json({ summary: rows[0].refs });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+      });
+    }
+  }
+
+  async fetchDocumentsBySessionId(req: SessionRequest, res: Response) {
+    try {
+      if (!req.sessionId) {
+        return res.status(400).json({ message: 'No session found' });
+      }
+
+      const [rows] = await db.execute<DocumentRow[]>(
+        'SELECT * FROM documents WHERE session_id = ?',
+        [req.sessionId]
+      );
+
+      return res.status(200).json({ documents: rows });
     } catch (error) {
       console.error(error);
       return res.status(500).json({

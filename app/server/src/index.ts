@@ -1,36 +1,60 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { sessionMiddleware } from './middleware/session';
 import db from './config/database';
 import router from './router';
-import cors from 'cors';
 
 const app = express();
+const httpServer = createServer(app);
 
-// Configure CORS with specific options
+const io = new Server(httpServer, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
+io.on('connection', socket => {
+  console.log('Client connected');
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+
+export { io };
+
 const corsOptions = {
   origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   credentials: true,
   optionsSuccessStatus: 200,
 };
 
-// cors config
 app.use(cors(corsOptions));
-
-//middleware
 app.use(express.json());
-
-// router
+app.use(cookieParser());
+app.use(sessionMiddleware);
 app.use('/api', router);
 
-// db connection with proper async handling
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error(err.message);
+  res.status(400).json({ error: 'Something went wrong!' });
+});
+
 const startServer = async () => {
   try {
     await db.getConnection();
     console.log('Connected to database');
 
-    app.listen(3000, () => {
-      console.log('Server is running on port 3000');
+    const PORT = 3000;
+    httpServer.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

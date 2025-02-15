@@ -7,25 +7,18 @@ dotenv.config();
 
 export class HuggingFaceService {
   private hf: HfInference;
-  private maxInputLength = 1024; // for Bart and Camembert
-  private maxRetries = 3; // max number of retries
-  private retryDelay = 1000; // 1 secs
+  private maxInputLength = 1024;
+  private maxRetries = 3;
+  private retryDelay = 1000;
 
   constructor() {
     const apiKey = process.env.HUGGING_FACE_API_KEY;
     if (!apiKey) {
-      throw new Error(
-        'HUGGING_FACE_API_KEY is not defined in environment variables'
-      );
+      throw new Error('HUGGING_FACE_API_KEY is not defined');
     }
-
     this.hf = new HfInference(apiKey);
   }
 
-  // helper function to retry a function call
-  // this function will retry the function call up to maxRetries times
-  // with a delay of retryDelay milliseconds between each retry
-  // if the function call fails, it will throw an error
   private async retry<T>(fn: () => Promise<T>): Promise<T> {
     for (let i = 0; i < this.maxRetries; i++) {
       try {
@@ -38,66 +31,72 @@ export class HuggingFaceService {
     throw new Error('Max retries reached');
   }
 
-  // Helper method to split text into manageable chunks
   private splitTextIntoChunks(text: string): string[] {
     const chunks: string[] = [];
     let currentChunk = '';
-    const sentences = text.split(/[.!?]+/);
+    const paragraphs = text.split(/\n\s*\n/); // Split by paragraphs instead of sentences
 
-    for (const sentence of sentences) {
-      if ((currentChunk + sentence).length > this.maxInputLength) {
-        if (currentChunk) chunks.push(currentChunk.trim());
-        currentChunk = sentence;
+    for (const paragraph of paragraphs) {
+      const trimmed = paragraph.trim();
+      if (!trimmed) continue;
+
+      if ((currentChunk + trimmed).length > this.maxInputLength) {
+        if (currentChunk) chunks.push(currentChunk);
+        currentChunk = trimmed;
       } else {
-        currentChunk += (currentChunk ? '. ' : '') + sentence;
+        currentChunk += (currentChunk ? '\n\n' : '') + trimmed;
       }
     }
-    if (currentChunk) chunks.push(currentChunk.trim());
+
+    if (currentChunk) chunks.push(currentChunk);
     return chunks;
   }
 
-  // im using this function to extract the text from the pdf file
   async extractTextFromPDF(filePath: string): Promise<string> {
     try {
       const dataBuffer = fs.readFileSync(filePath);
-      const data = await PdfParse(dataBuffer);
-      console.log('extracted text from pdf file succesfully');
-      return data.text;
+      const data = await PdfParse(dataBuffer, {
+        pagerender: render_page, // i am using a custom  renderer for better text extraction
+      });
+      return this.cleanExtractedText(data.text);
     } catch (error) {
       console.error('Error parsing PDF:', error);
       throw new Error('Failed to extract text from PDF');
     }
   }
 
-  // this function uses Bart to summarize the text from the pdf file
-  // Bart is a model that can summarize text from a given input
+  private cleanExtractedText(text: string): string {
+    return text
+      .replace(/\s+/g, ' ') // replaces  multiple spaces with single space
+      .replace(/\n+/g, '\n') // replaces multiple newlines with single newline
+      .replace(/[^\x20-\x7E\n]/g, '') // removes  non-ASCII characters
+      .trim();
+  }
+
   async summarizeText(text: string): Promise<string> {
     try {
       const chunks = this.splitTextIntoChunks(text);
       const summaries: string[] = [];
-      console.log('hit summarizeText');
 
-      // Process chunks sequentially instead of in parallel
       for (const chunk of chunks) {
         try {
           const result = await this.retry(async () => {
-            console.log('hit 2');
             const response = await this.hf.summarization({
               model: 'facebook/bart-large-cnn',
               inputs: chunk,
               parameters: {
-                max_length: 100,
-                min_length: 20,
-                temperature: 0.7,
+                max_length: 250,
+                min_length: 50,
+                top_p: 0.9,
+                top_k: 50,
+                temperature: 0.8,
+                repetition_penalty: 1.5,
               },
             });
             return response.summary_text;
           });
 
           if (result) summaries.push(result);
-
-          // Add delay between API calls
-          console.log('summarizeText succesfully');
           await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
           console.error('Chunk summarization error:', error);
@@ -105,58 +104,92 @@ export class HuggingFaceService {
         }
       }
 
-      return summaries.join(' ');
+      return this.postProcessSummary(summaries.join(' '));
     } catch (error) {
       console.error('Summarization error:', error);
       throw new Error('Failed to summarize text');
     }
   }
 
-  // this function uses Camembert to extract references from the text
-  // Camembert is a model that can extract entities from text
+  private postProcessSummary(summary: string): string {
+    return summary
+      .replace(/\s+/g, ' ')
+      .replace(/\s+\./g, '.')
+      .replace(/\s+,/g, ',')
+      .trim();
+  }
+
   async extractReferences(text: string): Promise<string[]> {
     try {
-      console.log('hit 3');
-      // Process text in chunks to avoid token limits
       const chunks = this.splitTextIntoChunks(text);
-      const allReferences: string[] = [];
+      const allReferences = new Set<string>();
 
       for (const chunk of chunks) {
-        const response = await this.hf.tokenClassification({
-          model: 'Jean-Baptiste/camembert-ner-with-dates',
-          inputs: chunk,
-        });
+        const [nerResult, miscResult] = await Promise.all([
+          this.hf.tokenClassification({
+            model: 'Jean-Baptiste/camembert-ner-with-dates',
+            inputs: chunk,
+          }),
+          this.hf.tokenClassification({
+            model: 'dbmdz/bert-large-cased-finetuned-conll03-english',
+            inputs: chunk,
+          }),
+        ]);
 
-        const references = response
-          .filter(
-            item =>
-              item.entity_group === 'MISC' ||
-              item.entity_group === 'ORG' ||
-              item.entity_group === 'PER'
+        // combines results from both models
+        const references = [...nerResult, ...miscResult]
+          .filter(item =>
+            [
+              'MISC',
+              'ORG',
+              'PER',
+              'LOC',
+              'PERSON',
+              'ORG',
+              'WORK_OF_ART',
+            ].includes(item.entity_group)
           )
-          .map(item => item.word);
+          .map(item => this.cleanReference(item.word));
 
-        allReferences.push(...references);
+        references.forEach(ref => allReferences.add(ref));
       }
 
-      console.log('extractReferences succesfully');
-      // Remove duplicates and return
-      return Array.from(new Set(allReferences));
+      return Array.from(allReferences);
     } catch (error) {
       console.error('Reference extraction error:', error);
       throw new Error('Failed to extract references');
     }
   }
 
-  // this function uses Roberta model to answer a question from the text
-  async answerQuestion(context: string, question: string): Promise<string> {
-    const response = await this.hf.questionAnswer({
-      model: 'deepset/roberta-base-squad2',
-      inputs: {
-        question,
-        context,
-      },
-    });
-    return response.answer;
+  private cleanReference(ref: string): string {
+    return ref
+      .replace(/[\[\]()]/g, '') // removes brackets and parentheses
+      .replace(/^\d+\.\s*/, '') // removes leading numbers and dots
+      .trim();
   }
+}
+
+// created a custom page renderer for PDF extraction
+// this will help in maintaining the text structure
+// and avoid combining text items that are not in the same line
+function render_page(pageData: any) {
+  let render_options = {
+    normalizeWhitespace: true,
+    disableCombineTextItems: false,
+  };
+  return pageData.getTextContent(render_options).then(function (
+    textContent: any
+  ) {
+    let lastY,
+      text = '';
+    for (let item of textContent.items) {
+      if (lastY == item.transform[5] || !lastY) {
+        text += item.str;
+      } else {
+        text += '\n' + item.str;
+      }
+      lastY = item.transform[5];
+    }
+    return text;
+  });
 }

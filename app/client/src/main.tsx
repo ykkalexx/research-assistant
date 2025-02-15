@@ -5,11 +5,14 @@ import App from "./App.tsx";
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import "@mantine/dropzone/styles.css";
+import { WebSocketProvider } from "./config/websocket.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MantineProvider>
-      <App />
+      <WebSocketProvider>
+        <App />
+      </WebSocketProvider>
     </MantineProvider>
   </StrictMode>
 );
