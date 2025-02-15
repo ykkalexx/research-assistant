@@ -13,12 +13,14 @@ interface ChatProps {
   documentId: number;
 }
 
+type CitationStyle = "APA" | "MLA" | "Chicago";
+
 export const Chat = ({ documentId }: ChatProps) => {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const { lastUpload } = useWebSocket();
-  const [awaitingCitationStyle, setAwaitingCitationStyle] = useState(false);
+  const [showCitationDropdown, setShowCitationDropdown] = useState(false);
 
   const handleSubmit = async () => {
     if (!question.trim() || loading) return;
@@ -135,56 +137,27 @@ export const Chat = ({ documentId }: ChatProps) => {
     }
   };
 
-  const handleCitation = async () => {
-    if (!awaitingCitationStyle) {
-      // First click: Ask for citation style
-      const styleMessage: Message = {
-        id: Date.now().toString(),
-        content:
-          "Which citation style would you like? (Type APA, MLA, or Chicago)",
-        isAi: true,
-      };
-      setMessages((prev) => [...prev, styleMessage]);
-      setAwaitingCitationStyle(true);
-      return;
-    }
-
-    // Second stage: Process the style and get citation
+  const handleCitation = async (style: CitationStyle) => {
     try {
       setLoading(true);
-      const style = question.toUpperCase();
+      setShowCitationDropdown(false);
+      const response = await api.post("/citation", { id: documentId, style });
 
-      if (!["APA", "MLA", "CHICAGO"].includes(style)) {
-        const errorMessage: Message = {
-          id: Date.now().toString(),
-          content: "Please choose either APA, MLA, or Chicago style.",
-          isAi: true,
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-        return;
-      }
-
-      const response = await api.post("/citation", {
-        id: documentId,
-        style,
-      });
-
+      // Create AI message for summary
       const aiMessage: Message = {
         id: Date.now().toString(),
         content: response.data.citation
-          ? `Here's the ${style} citation:\n\n${response.data.citation}`
-          : "No citation could be generated for this document.",
+          ? "Here's the citation:\n\n" + response.data.citation
+          : "No summary found for this document.",
         isAi: true,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
-      setAwaitingCitationStyle(false);
-      setQuestion("");
     } catch (error) {
-      console.error("Failed to get citation:", error);
+      console.error("Failed to get summary:", error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        content: "Sorry, I couldn't generate the citation. Please try again.",
+        content: "Sorry, I couldn't fetch the summary. Please try again.",
         isAi: true,
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -274,9 +247,27 @@ export const Chat = ({ documentId }: ChatProps) => {
           <MyBtn onClick={handleSummary} disabled={loading}>
             Get Summary
           </MyBtn>
-          <MyBtn onClick={handleCitation} disabled={loading}>
-            Get Citation
-          </MyBtn>
+          <div className="relative group">
+            <MyBtn
+              onClick={() => setShowCitationDropdown(!showCitationDropdown)}
+              disabled={loading}
+            >
+              Get Citation
+            </MyBtn>
+            {showCitationDropdown && (
+              <div className="absolute bottom-full mb-2 py-2 w-32 bg-[#303030] rounded-lg shadow-xl border border-[#2A2B32] z-10 left-1/2 transform -translate-x-1/2">
+                {(["APA", "MLA", "Chicago"] as CitationStyle[]).map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => handleCitation(style)}
+                    className="w-full px-4 py-2 text-left text-[#ECECF1] hover:bg-[#2A2B32] transition-colors"
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
