@@ -36,9 +36,9 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
+app.use(cookieParser());
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(cookieParser());
 app.use(sessionMiddleware);
 app.use('/api', router);
 
