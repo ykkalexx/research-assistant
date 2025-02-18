@@ -82,23 +82,6 @@ npm install
 mysql -u root -p < app/server/src/migrations/001_migration.sql
 ```
 
-## Project Structure
-
-app/
-├── client/ # Frontend React application
-│ ├── src/
-│ │ ├── components/ # React components
-│ │ ├── config/ # Configuration files
-│ │ └── App.tsx # Main application component
-│ └── ...
-└── server/ # Backend Node.js application
-├── src/
-│ ├── controllers/# Request handlers
-│ ├── services/ # Business logic
-│ ├── config/ # Configuration files
-│ └── ...
-└── ...
-
 ## Features in Detail
 
 ### Document Processing
