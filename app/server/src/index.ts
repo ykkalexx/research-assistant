@@ -29,7 +29,7 @@ io.on('connection', socket => {
 export { io };
 
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: 'https://research-assistant-production-7be0.up.railway.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   credentials: true,
