@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import db from '@/config/database';
-import { OpenAiService } from '@/services/OpenAiService';
-import { PdfService } from '@/services/PdfService';
+import db from '../config/database';
+import { OpenAiService } from '../services/OpenAiService';
+import { PdfService } from '../services/PdfService';
 import { io } from '../index';
-import { DocumentRow } from '@/interfaces';
-import { CitationService } from '@/services/CitationService';
+import { DocumentRow } from '../interfaces';
+import { CitationService } from '../services/CitationService';
 
 interface SessionRequest extends Request {
   sessionId?: string;

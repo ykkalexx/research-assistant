@@ -1,7 +1,7 @@
-import { upload } from '@/config/multer';
-import db from '@/config/database';
+import { upload } from '../config/multer';
+import db from '../config/database';
 import { Request, Response } from 'express';
-import { HuggingFaceService } from '@/services/HuggingFaceService';
+import { HuggingFaceService } from '../services/HuggingFaceService';
 
 const hfService = new HuggingFaceService();
 

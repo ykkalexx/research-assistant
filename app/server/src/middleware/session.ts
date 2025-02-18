@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import db from '@/config/database';
+import db from '../config/database';
 
 interface SessionRequest extends Request {
   sessionId?: string;

@@ -1,5 +1,5 @@
 import express from 'express';
-import { FileControllers } from '@/controllers/FileControllers';
+import { FileControllers } from '../controllers/FileControllers';
 
 const router = express.Router();
 const files = new FileControllers();
