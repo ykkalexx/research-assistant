@@ -60,7 +60,7 @@ export class OpenAiService {
           },
           {
             role: 'user',
-            content: `Please summarize this academic text:\n\n${text}`,
+            content: `Please summarize this academic text:\n\n${text}. Do not return it in markdown format, just plain text.`,
           },
         ],
         temperature: 0.7,
