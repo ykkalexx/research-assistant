@@ -37,14 +37,14 @@ export const Sidebar = ({ onDocumentSelect, selectedDocId }: SidebarProps) => {
   }, []);
 
   return (
-    <div
+    <aside
       className={`relative bg-[#171717] h-full transition-all duration-300 ease-in-out ${
         isOpen ? "w-[250px]" : "w-[60px]"
       }`}
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute -right-4 top-6 bg-[#171717] rounded-full p-1 cursor-pointer hover:bg-[#212121] transition-colors"
+        className="hidden md:block absolute -right-4 top-6 bg-[#171717] rounded-full p-1 cursor-pointer hover:bg-[#212121] transition-colors z-50"
       >
         {isOpen ? (
           <IconChevronLeft size={20} className="text-[#d1d1d1]" />
@@ -81,6 +81,6 @@ export const Sidebar = ({ onDocumentSelect, selectedDocId }: SidebarProps) => {
           )}
         </div>
       </div>
-    </div>
+    </aside>
   );
 };

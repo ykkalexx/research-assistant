@@ -240,27 +240,36 @@ export const Chat = ({ documentId }: ChatProps) => {
           </button>
         </div>
 
-        <div className="flex flex-row items-center justify-center gap-10">
-          <MyBtn onClick={handleRefs} disabled={loading}>
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-10">
+          <MyBtn
+            onClick={handleRefs}
+            disabled={loading}
+            className="w-full text-sm sm:w-auto sm:text-base"
+          >
             Get References
           </MyBtn>
-          <MyBtn onClick={handleSummary} disabled={loading}>
+          <MyBtn
+            onClick={handleSummary}
+            disabled={loading}
+            className="w-full text-sm sm:w-auto sm:text-base"
+          >
             Get Summary
           </MyBtn>
-          <div className="relative group">
+          <div className="relative w-full group sm:w-auto">
             <MyBtn
               onClick={() => setShowCitationDropdown(!showCitationDropdown)}
               disabled={loading}
+              className="w-full text-sm sm:w-auto sm:text-base"
             >
               Get Citation
             </MyBtn>
             {showCitationDropdown && (
-              <div className="absolute bottom-full mb-2 py-2 w-32 bg-[#303030] rounded-lg shadow-xl border border-[#2A2B32] z-10 left-1/2 transform -translate-x-1/2">
+              <div className="absolute bottom-full left-0 sm:left-1/2 mb-2 py-2 w-full sm:w-32 bg-[#303030] rounded-lg shadow-xl border border-[#2A2B32] z-10 sm:transform sm:-translate-x-1/2">
                 {(["APA", "MLA", "Chicago"] as CitationStyle[]).map((style) => (
                   <button
                     key={style}
                     onClick={() => handleCitation(style)}
-                    className="w-full px-4 py-2 text-left text-[#ECECF1] hover:bg-[#2A2B32] transition-colors"
+                    className="w-full px-4 py-3 sm:py-2 text-center sm:text-left text-sm sm:text-base text-[#ECECF1] hover:bg-[#2A2B32] transition-colors active:bg-[#2A2B32]"
                   >
                     {style}
                   </button>
