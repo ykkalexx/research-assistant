@@ -47,4 +47,32 @@ export class OpenAiService {
       throw new Error('Failed to get answer from OpenAI');
     }
   }
+
+  async summarizeText(text: string): Promise<string> {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'chatgpt-4o-latest',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a research assistant that creates concise but informative summaries of academic papers. Focus on key findings, methodology, and conclusions.',
+          },
+          {
+            role: 'user',
+            content: `Please summarize this academic text:\n\n${text}`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+
+      return (
+        response.choices[0].message.content || 'Failed to generate summary'
+      );
+    } catch (error) {
+      console.error('OpenAI summarization error:', error);
+      throw new Error('Failed to generate summary');
+    }
+  }
 }

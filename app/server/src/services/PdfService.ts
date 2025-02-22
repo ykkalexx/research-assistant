@@ -2,8 +2,12 @@ import { upload } from '../config/multer';
 import db from '../config/database';
 import { Request, Response } from 'express';
 import { HuggingFaceService } from '../services/HuggingFaceService';
+import { OpenAiService } from './OpenAiService';
+import PdfParse from 'pdf-parse';
+import fs from 'fs';
 
 const hfService = new HuggingFaceService();
+const openai = new OpenAiService();
 
 export class PdfService {
   async handleFileUpload(
@@ -34,8 +38,8 @@ export class PdfService {
     { text: string; summary: string; references: string[] } | Response
   > {
     try {
-      const text = await hfService.extractTextFromPDF(filePath);
-      const summary = await hfService.summarizeText(text);
+      const text = await this.extractTextFromPDF(filePath);
+      const summary = await openai.summarizeText(text);
       const references = await hfService.extractReferences(text);
 
       if (!summary || !references) {
@@ -81,5 +85,47 @@ export class PdfService {
       console.error('Database error:', error);
       throw error;
     }
+  }
+
+  private async extractTextFromPDF(filePath: string): Promise<string> {
+    try {
+      const dataBuffer = fs.readFileSync(filePath);
+      const data = await PdfParse(dataBuffer, {
+        pagerender: this.renderPage,
+      });
+      return this.cleanExtractedText(data.text);
+    } catch (error) {
+      console.error('Error parsing PDF:', error);
+      throw new Error('Failed to extract text from PDF');
+    }
+  }
+
+  private cleanExtractedText(text: string): string {
+    return text
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/\n+/g, '\n') // Normalize line breaks
+      .replace(/[^\x20-\x7E\n]/g, '') // Remove non-ASCII characters
+      .trim();
+  }
+
+  private renderPage(pageData: any) {
+    const renderOptions = {
+      normalizeWhitespace: true,
+      disableCombineTextItems: false,
+    };
+
+    return pageData.getTextContent(renderOptions).then((textContent: any) => {
+      let lastY,
+        text = '';
+      for (let item of textContent.items) {
+        if (lastY == item.transform[5] || !lastY) {
+          text += item.str;
+        } else {
+          text += '\n' + item.str;
+        }
+        lastY = item.transform[5];
+      }
+      return text;
+    });
   }
 }
