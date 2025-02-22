@@ -30,7 +30,7 @@ describe('FileControllers', () => {
         stream: new Readable(),
         buffer: Buffer.from('test'),
       },
-      //@ts-ignore fuck you ts
+
       sessionId: 'test-session-id',
       body: {},
     };

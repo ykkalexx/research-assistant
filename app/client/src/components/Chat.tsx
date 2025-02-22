@@ -68,9 +68,9 @@ export const Chat = ({ documentId }: ChatProps) => {
     }
   };
 
+  // typescript ...
   useEffect(() => {
     if (
-      // fucking typescript
       lastUpload &&
       typeof lastUpload === "object" &&
       "id" in lastUpload &&
