@@ -91,16 +91,30 @@ export const Chat = ({ documentId }: ChatProps) => {
   const handleRefs = async () => {
     try {
       setLoading(true);
+
+      // Create user message first
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        message: "Extract references from this document",
+        confidence: 1,
+        isAi: false,
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
       const response = await api.post("/refs", { id: documentId });
 
-      // Create AI message for references
       const aiMessage: Message = {
         id: Date.now().toString(),
-        message: Array.isArray(response.data.refs)
-          ? "Here are the references:\n\n" + response.data.refs.join("\n")
-          : "No references found for this document.",
+        message: response.data.refs
+          ? response.data.refs.join("\n")
+          : "No references found.",
         isAi: true,
-        confidence: 0.9,
+        confidence: response.data.confidence || 0.9,
+        metadata: {
+          type: "references",
+          count: response.data.refs?.length || 0,
+          ...response.data.metadata,
+        },
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -121,16 +135,28 @@ export const Chat = ({ documentId }: ChatProps) => {
   const handleSummary = async () => {
     try {
       setLoading(true);
+
+      // Create user message first
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        message: "Generate a summary of this document",
+        confidence: 1,
+        isAi: false,
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
       const response = await api.post("/summary", { id: documentId });
 
-      // Create AI message for summary
       const aiMessage: Message = {
         id: Date.now().toString(),
-        message: response.data.summary
-          ? "Here's the summary:\n\n" + response.data.summary
-          : "No summary found for this document.",
+        message: response.data.summary || "No summary available.",
         isAi: true,
-        confidence: 0.9,
+        confidence: response.data.confidence || 0.9,
+        metadata: {
+          type: "summary",
+          wordCount: response.data.summary?.split(/\s+/).length || 0,
+          ...response.data.metadata,
+        },
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -152,21 +178,28 @@ export const Chat = ({ documentId }: ChatProps) => {
     try {
       setLoading(true);
       setShowCitationDropdown(false);
+
+      // Create user message first
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        message: `Generate citation in ${style} style`,
+        confidence: 1,
+        isAi: false,
+      };
+      setMessages((prev) => [...prev, userMessage]);
+
       const response = await api.post("/citation", { id: documentId, style });
 
-      console.log("Citation response:", response.data);
-
-      // Create AI message for summary
       const aiMessage: Message = {
         id: Date.now().toString(),
-        message: response.data.citation,
-        confidence: response.data.confidence,
+        message: response.data.citation || "No citation available.",
+        isAi: true,
+        confidence: response.data.confidence || 0.9,
         metadata: {
           type: "citation",
           style: style,
           ...response.data.metadata,
         },
-        isAi: true,
       };
 
       setMessages((prev) => [...prev, aiMessage]);

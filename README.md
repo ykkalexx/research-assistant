@@ -1,15 +1,17 @@
 # Research Assistant
 
-An AI-powered research assistant that helps users analyze academic papers and research documents through natural language processing and machine learning.
+An AI-powered research assistant that helps users analyze academic papers and research documents through a multi-agent AI system.
 
 ## Features
 
 - 📄 **PDF Document Processing**: Upload and process academic papers and research documents
-- 📝 **Smart Summarization**: Get concise summaries of uploaded documents
-- ❓ **Interactive Q&A**: Ask questions about the documents and get contextual answers
-- 📚 **Reference Extraction**: Automatically extract and format citations and references
-- 📋 **Multiple Citation Styles**: Generate citations in APA, MLA, and Chicago formats
+- 🤖 **Multi-Agent AI System**: Specialized AI agents for different tasks
+- 📝 **Smart Summarization**: Get concise summaries using the Summary Agent
+- ❓ **Interactive Q&A**: Context-aware Q&A with dedicated QA Agent
+- 📚 **Reference Extraction**: Automatic reference extraction via Reference Agent
+- 📋 **Citation Generation**: Multiple citation styles handled by Citation Agent
 - 🔄 **Real-time Updates**: WebSocket integration for live processing updates
+- 🎯 **Confidence Scoring**: Each agent response includes confidence metrics
 
 ## Tech Stack
 
@@ -25,11 +27,45 @@ An AI-powered research assistant that helps users analyze academic papers and re
 
 - Node.js + Express
 - MySQL Database
-- OpenAI API
-- HuggingFace Inference API
+- OpenAI API Integration
+- Agent-based Architecture
 - PDF Processing
 - Socket.io
 - TypeScript
+
+## AI Agents
+
+The system uses a modular agent-based architecture:
+
+### Summary Agent
+
+- Generates concise document summaries
+- Focuses on key findings and methodology
+- Provides word count metrics
+
+### QA Agent
+
+- Handles natural language questions
+- Context-aware responses
+- Question type classification
+
+### Reference Agent
+
+- Extracts bibliography and citations
+- Identifies academic references
+- Maintains reference context
+
+### Citation Agent
+
+- Generates formatted citations
+- Supports APA, MLA, Chicago styles
+- Style-specific formatting
+
+### Agent Orchestrator
+
+- Coordinates between agents
+- Confidence-based response selection
+- Task routing and management
 
 ## Getting Started
 
@@ -38,7 +74,6 @@ An AI-powered research assistant that helps users analyze academic papers and re
 - Node.js (v16 or higher)
 - MySQL
 - OpenAI API Key
-- HuggingFace API Key
 
 ### Environment Setup
 
@@ -84,23 +119,30 @@ mysql -u root -p < app/server/src/migrations/001_migration.sql
 
 ## Features in Detail
 
-### Document Processing
+### Agent System Architecture
+
+- **Task Recognition**: Agents automatically identify relevant tasks
+- **Confidence Scoring**: Each agent provides confidence metrics
+- **Metadata Generation**: Rich metadata for each response
+- **Fallback Handling**: Graceful degradation when tasks are unclear
+
+### Document Processing
 
 - PDF file upload and text extraction
-- Automatic summarization using AI models
-- Reference and citation extraction
+- Agent-based summarization and analysis
+- Automatic reference and citation extraction
 
-### Interactive Chat
+### Interactive Chat
 
-- Context-aware question answering
-- Real-time responses using OpenAI
+- Context-aware question answering via QA Agent
+- Real-time responses with confidence scores
 - Multiple document context support
 
-### Citation Management
+### Citation Management
 
-- Support for multiple citation styles (APA, MLA, Chicago)
+- Citation Agent handles multiple styles
 - Automatic metadata extraction
-- Formatted citation generation
+- Formatted citation generation with style detection
 
 ### Contributing
 
