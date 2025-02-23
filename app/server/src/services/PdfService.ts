@@ -5,9 +5,11 @@ import { HuggingFaceService } from '../services/HuggingFaceService';
 import { OpenAiService } from './OpenAiService';
 import PdfParse from 'pdf-parse';
 import fs from 'fs';
+import { AgentOrchestrator } from './Agents/AgentOrchestrator';
 
 const hfService = new HuggingFaceService();
 const openai = new OpenAiService();
+const agentOrchestrator = new AgentOrchestrator();
 
 export class PdfService {
   async handleFileUpload(
@@ -39,14 +41,17 @@ export class PdfService {
   > {
     try {
       const text = await this.extractTextFromPDF(filePath);
-      const summary = await openai.summarizeText(text);
+      const summary = await agentOrchestrator.processRequest(
+        'summarize this document',
+        text
+      );
       const references = await hfService.extractReferences(text);
 
       if (!summary || !references) {
         throw new Error('Failed to generate summary or references');
       }
 
-      return { text, summary, references };
+      return { text, summary: summary.message, references };
     } catch (error) {
       console.error('Processing error:', error);
       throw error;

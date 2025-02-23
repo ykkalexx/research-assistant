@@ -6,13 +6,18 @@ import cookieParser from 'cookie-parser';
 import { sessionMiddleware } from './middleware/session';
 import db from './config/database';
 import router from './router';
+import { AgentOrchestrator } from './services/Agents/AgentOrchestrator';
 
 const app = express();
 const httpServer = createServer(app);
+const agentOrchestrator = new AgentOrchestrator();
+
+// local: http://localhost:5173
+// production: https://research-assistant-production-7be0.up.railway.app
 
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://research-assistant-production-7be0.up.railway.app',
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -20,6 +25,20 @@ const io = new Server(httpServer, {
 
 io.on('connection', socket => {
   console.log('Client connected');
+
+  socket.on('process_task', async (data: { task: string; context: string }) => {
+    try {
+      const result = await agentOrchestrator.processRequest(
+        data.task,
+        data.context
+      );
+      socket.emit('task_result', result);
+    } catch (error) {
+      socket.emit('task_error', {
+        message: error instanceof Error ? error.message : 'Processing failed',
+      });
+    }
+  });
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');
@@ -29,7 +48,7 @@ io.on('connection', socket => {
 export { io };
 
 const corsOptions = {
-  origin: 'https://research-assistant-production-7be0.up.railway.app',
+  origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   credentials: true,
