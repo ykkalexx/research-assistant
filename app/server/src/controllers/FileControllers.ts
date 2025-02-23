@@ -4,7 +4,7 @@ import { OpenAiService } from '../services/OpenAiService';
 import { PdfService } from '../services/PdfService';
 import { io } from '../index';
 import { DocumentRow } from '../interfaces';
-import { CitationService } from '../services/CitationService';
+import { AgentOrchestrator } from '../services/Agents/AgentOrchestrator';
 
 interface SessionRequest extends Request {
   sessionId?: string;
@@ -12,7 +12,7 @@ interface SessionRequest extends Request {
 
 const pdf = new PdfService();
 const openai = new OpenAiService();
-const cit = new CitationService();
+const agentOrchestrator = new AgentOrchestrator();
 
 export class FileControllers {
   // This method will handle the file upload process
@@ -188,16 +188,20 @@ export class FileControllers {
       );
 
       const document = rows[0];
-
       if (!document) {
         return res.status(404).json({ message: 'Document not found' });
       }
 
-      const citation = await cit.generateCitation(document.full_text, style);
+      const result = await agentOrchestrator.processRequest(
+        `generate citation in ${style} style`,
+        document.full_text
+      );
 
-      console.log('Generated citation:', citation);
-
-      return res.status(200).json({ citation });
+      return res.status(200).json({
+        citation: result.message,
+        confidence: result.confidence,
+        metadata: result.metadata,
+      });
     } catch (error) {
       console.error(error);
       return res.status(500).json({

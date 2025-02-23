@@ -154,14 +154,19 @@ export const Chat = ({ documentId }: ChatProps) => {
       setShowCitationDropdown(false);
       const response = await api.post("/citation", { id: documentId, style });
 
+      console.log("Citation response:", response.data);
+
       // Create AI message for summary
       const aiMessage: Message = {
         id: Date.now().toString(),
-        message: response.data.citation
-          ? "Here's the citation:\n\n" + response.data.citation
-          : "No summary found for this document.",
+        message: response.data.citation,
+        confidence: response.data.confidence,
+        metadata: {
+          type: "citation",
+          style: style,
+          ...response.data.metadata,
+        },
         isAi: true,
-        confidence: 0.9,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -191,7 +196,9 @@ export const Chat = ({ documentId }: ChatProps) => {
             : "bg-[#343541] text-[#ECECF1]"
         }`}
       >
-        <div>{message.isAi ? message.answer : message.message}</div>
+        <div>
+          {message.isAi ? message.answer || message.message : message.message}
+        </div>
 
         {message.isAi && message.metadata && (
           <div className="mt-2 text-xs text-[#8E8EA0]">

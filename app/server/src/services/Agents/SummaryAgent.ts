@@ -1,4 +1,4 @@
-import { Agent, AgentResponse } from '../../types/types';
+import { Agent, AgentResponse } from '../../interfaces/index';
 import { OpenAiService } from '../OpenAiService';
 
 export class SummaryAgent implements Agent {

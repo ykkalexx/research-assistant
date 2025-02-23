@@ -1,12 +1,13 @@
-import { Agent, AgentResponse } from '../../types/types';
+import { Agent, AgentResponse } from '../../interfaces/index';
 import { SummaryAgent } from './SummaryAgent';
 import { QAAgent } from './QAAgent';
+import { CitationAgent } from './CitationAgent';
 
 export class AgentOrchestrator {
   private agents: Agent[];
 
   constructor() {
-    this.agents = [new SummaryAgent(), new QAAgent()];
+    this.agents = [new SummaryAgent(), new QAAgent(), new CitationAgent()];
   }
 
   async processRequest(task: string, context: string): Promise<AgentResponse> {
