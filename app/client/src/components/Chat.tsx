@@ -75,6 +75,12 @@ export const Chat = ({ documentId }: ChatProps) => {
     }
   };
 
+  useEffect(() => {
+    setMessages([]); // Clear messages when document changes
+    setQuestion(""); // Clear input field
+    setShowCitationDropdown(false); // Hide citation dropdown if open
+  }, [documentId]);
+
   // typescript ...
   useEffect(() => {
     if (
