@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import api from "../config/api";
+import { useWebSocket } from "../config/websocket";
 
 interface Document {
   id: number;
@@ -19,6 +20,7 @@ export const Sidebar = ({ onDocumentSelect, selectedDocId }: SidebarProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
+  const { lastUpload } = useWebSocket();
 
   const fetchDocs = async () => {
     try {
@@ -35,6 +37,13 @@ export const Sidebar = ({ onDocumentSelect, selectedDocId }: SidebarProps) => {
   useEffect(() => {
     fetchDocs();
   }, []);
+
+  useEffect(() => {
+    if (lastUpload) {
+      console.log("New document uploaded, refreshing list...");
+      fetchDocs();
+    }
+  }, [lastUpload]);
 
   return (
     <aside
