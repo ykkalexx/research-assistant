@@ -94,92 +94,6 @@ export const Chat = ({ documentId }: ChatProps) => {
     }
   }, [lastUpload, documentId]);
 
-  const handleRefs = async () => {
-    try {
-      setLoading(true);
-
-      // Create user message first
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        message: "Extract references from this document",
-        confidence: 1,
-        isAi: false,
-      };
-      setMessages((prev) => [...prev, userMessage]);
-
-      const response = await api.post("/refs", { id: documentId });
-
-      const aiMessage: Message = {
-        id: Date.now().toString(),
-        message: response.data.refs
-          ? response.data.refs.join("\n")
-          : "No references found.",
-        isAi: true,
-        confidence: response.data.confidence || 0.9,
-        metadata: {
-          type: "references",
-          count: response.data.refs?.length || 0,
-          ...response.data.metadata,
-        },
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      console.error("Failed to get references:", error);
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        message: "Sorry, I couldn't fetch the references. Please try again.",
-        isAi: true,
-        confidence: 0,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSummary = async () => {
-    try {
-      setLoading(true);
-
-      // Create user message first
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        message: "Generate a summary of this document",
-        confidence: 1,
-        isAi: false,
-      };
-      setMessages((prev) => [...prev, userMessage]);
-
-      const response = await api.post("/summary", { id: documentId });
-
-      const aiMessage: Message = {
-        id: Date.now().toString(),
-        message: response.data.summary || "No summary available.",
-        isAi: true,
-        confidence: response.data.confidence || 0.9,
-        metadata: {
-          type: "summary",
-          wordCount: response.data.summary?.split(/\s+/).length || 0,
-          ...response.data.metadata,
-        },
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      console.error("Failed to get summary:", error);
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        message: "Sorry, I couldn't fetch the summary. Please try again.",
-        isAi: true,
-        confidence: 0,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCitation = async (style: CitationStyle) => {
     try {
       setLoading(true);
@@ -316,20 +230,6 @@ export const Chat = ({ documentId }: ChatProps) => {
         </div>
 
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-10">
-          <MyBtn
-            onClick={handleRefs}
-            disabled={loading}
-            className="w-full text-sm sm:w-auto sm:text-base"
-          >
-            Get References
-          </MyBtn>
-          <MyBtn
-            onClick={handleSummary}
-            disabled={loading}
-            className="w-full text-sm sm:w-auto sm:text-base"
-          >
-            Get Summary
-          </MyBtn>
           <div className="relative w-full group sm:w-auto">
             <MyBtn
               onClick={() => setShowCitationDropdown(!showCitationDropdown)}
