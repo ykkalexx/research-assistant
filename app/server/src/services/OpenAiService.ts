@@ -75,4 +75,31 @@ export class OpenAiService {
       throw new Error('Failed to generate summary');
     }
   }
+
+  async generateCitation(text: string): Promise<string> {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'chatgpt-4o-latest',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a research assistant that creates citations for academic papers. Please provide the citation ',
+          },
+          {
+            role: 'user',
+            content: `Please provide citation for this academic text:\n\n${text}. Do not return it in markdown format, just plain text.`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+      return (
+        response.choices[0].message.content || 'Failed to generate citations'
+      );
+    } catch (error) {
+      console.error('OpenAI summarization error:', error);
+      throw new Error('Failed to generate summary');
+    }
+  }
 }

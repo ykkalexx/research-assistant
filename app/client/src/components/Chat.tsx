@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import api from "../config/api";
 import { useWebSocket } from "../config/websocket";
 import MyBtn from "./MyBtn";
+import { AgentResponse } from "../types/types";
 
-interface Message {
+interface Message extends AgentResponse {
   id: string;
-  content: string;
   isAi: boolean;
 }
 
@@ -27,7 +27,8 @@ export const Chat = ({ documentId }: ChatProps) => {
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: question,
+      message: question,
+      confidence: 1,
       isAi: false,
     };
 
@@ -36,14 +37,19 @@ export const Chat = ({ documentId }: ChatProps) => {
     setLoading(true);
 
     try {
-      const response = await api.post("/question", {
+      const response = await api.post<AgentResponse>("/question", {
         documentId,
-        question: userMessage.content,
+        question: userMessage.message,
       });
+
+      // Log the response to debug
+      console.log("Agent response:", response.data);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: response.data.answer,
+        answer: response.data.answer,
+        confidence: response.data.confidence || 0,
+        metadata: response.data.metadata,
         isAi: true,
       };
 
@@ -52,7 +58,8 @@ export const Chat = ({ documentId }: ChatProps) => {
       console.error("Error:", err);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "Sorry, I couldn't process your request. Please try again.",
+        message: "Sorry, I couldn't process your request. Please try again.",
+        confidence: 0,
         isAi: true,
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -89,10 +96,11 @@ export const Chat = ({ documentId }: ChatProps) => {
       // Create AI message for references
       const aiMessage: Message = {
         id: Date.now().toString(),
-        content: Array.isArray(response.data.refs)
+        message: Array.isArray(response.data.refs)
           ? "Here are the references:\n\n" + response.data.refs.join("\n")
           : "No references found for this document.",
         isAi: true,
+        confidence: 0.9,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -100,8 +108,9 @@ export const Chat = ({ documentId }: ChatProps) => {
       console.error("Failed to get references:", error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        content: "Sorry, I couldn't fetch the references. Please try again.",
+        message: "Sorry, I couldn't fetch the references. Please try again.",
         isAi: true,
+        confidence: 0,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -117,10 +126,11 @@ export const Chat = ({ documentId }: ChatProps) => {
       // Create AI message for summary
       const aiMessage: Message = {
         id: Date.now().toString(),
-        content: response.data.summary
+        message: response.data.summary
           ? "Here's the summary:\n\n" + response.data.summary
           : "No summary found for this document.",
         isAi: true,
+        confidence: 0.9,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -128,8 +138,9 @@ export const Chat = ({ documentId }: ChatProps) => {
       console.error("Failed to get summary:", error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        content: "Sorry, I couldn't fetch the summary. Please try again.",
+        message: "Sorry, I couldn't fetch the summary. Please try again.",
         isAi: true,
+        confidence: 0,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -143,12 +154,18 @@ export const Chat = ({ documentId }: ChatProps) => {
       setShowCitationDropdown(false);
       const response = await api.post("/citation", { id: documentId, style });
 
+      console.log("Citation response:", response.data);
+
       // Create AI message for summary
       const aiMessage: Message = {
         id: Date.now().toString(),
-        content: response.data.citation
-          ? "Here's the citation:\n\n" + response.data.citation
-          : "No summary found for this document.",
+        message: response.data.citation,
+        confidence: response.data.confidence,
+        metadata: {
+          type: "citation",
+          style: style,
+          ...response.data.metadata,
+        },
         isAi: true,
       };
 
@@ -157,8 +174,9 @@ export const Chat = ({ documentId }: ChatProps) => {
       console.error("Failed to get summary:", error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        content: "Sorry, I couldn't fetch the summary. Please try again.",
+        message: "Sorry, I couldn't fetch the summary. Please try again.",
         isAi: true,
+        confidence: 0,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -166,26 +184,44 @@ export const Chat = ({ documentId }: ChatProps) => {
     }
   };
 
+  const renderMessage = (message: Message) => (
+    <div
+      key={message.id}
+      className={`flex ${message.isAi ? "justify-start" : "justify-end"}`}
+    >
+      <div
+        className={`max-w-[80%] p-3 rounded-lg break-words whitespace-pre-wrap ${
+          message.isAi
+            ? "bg-[#444654] text-[#ECECF1]"
+            : "bg-[#343541] text-[#ECECF1]"
+        }`}
+      >
+        <div>
+          {message.isAi ? message.answer || message.message : message.message}
+        </div>
+
+        {message.isAi && message.metadata && (
+          <div className="mt-2 text-xs text-[#8E8EA0]">
+            {message.metadata.type === "qa" && (
+              <span>Question Type: {message.metadata.questionType}</span>
+            )}
+            {message.metadata.type === "summary" && (
+              <span>Word Count: {message.metadata.wordCount}</span>
+            )}
+            <span className="ml-2">
+              Confidence: {(message.confidence * 100).toFixed(1)}%
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-300px)]">
       {/* Messages Container */}
       <div className="flex-1 p-2 mb-4 space-y-4 overflow-y-auto">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.isAi ? "justify-start" : "justify-end"}`}
-          >
-            <div
-              className={`max-w-[80%] p-3 rounded-lg break-words whitespace-pre-wrap ${
-                message.isAi
-                  ? "bg-[#444654] text-[#ECECF1]"
-                  : "bg-[#343541] text-[#ECECF1]"
-              }`}
-            >
-              {message.content}
-            </div>
-          </div>
-        ))}
+        {messages.map(renderMessage)}
         {loading && (
           <div className="flex justify-start">
             <div className="max-w-[80%] p-3 rounded-lg bg-[#444654]">

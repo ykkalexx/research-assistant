@@ -6,9 +6,11 @@ import cookieParser from 'cookie-parser';
 import { sessionMiddleware } from './middleware/session';
 import db from './config/database';
 import router from './router';
+import { AgentOrchestrator } from './services/Agents/AgentOrchestrator';
 
 const app = express();
 const httpServer = createServer(app);
+const agentOrchestrator = new AgentOrchestrator();
 
 const io = new Server(httpServer, {
   cors: {
@@ -20,6 +22,20 @@ const io = new Server(httpServer, {
 
 io.on('connection', socket => {
   console.log('Client connected');
+
+  socket.on('process_task', async (data: { task: string; context: string }) => {
+    try {
+      const result = await agentOrchestrator.processRequest(
+        data.task,
+        data.context
+      );
+      socket.emit('task_result', result);
+    } catch (error) {
+      socket.emit('task_error', {
+        message: error instanceof Error ? error.message : 'Processing failed',
+      });
+    }
+  });
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');

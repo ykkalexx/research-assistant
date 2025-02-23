@@ -1,13 +1,11 @@
 import { upload } from '../config/multer';
 import db from '../config/database';
 import { Request, Response } from 'express';
-import { HuggingFaceService } from '../services/HuggingFaceService';
-import { OpenAiService } from './OpenAiService';
 import PdfParse from 'pdf-parse';
 import fs from 'fs';
+import { AgentOrchestrator } from './Agents/AgentOrchestrator';
 
-const hfService = new HuggingFaceService();
-const openai = new OpenAiService();
+const agentOrchestrator = new AgentOrchestrator();
 
 export class PdfService {
   async handleFileUpload(
@@ -39,14 +37,24 @@ export class PdfService {
   > {
     try {
       const text = await this.extractTextFromPDF(filePath);
-      const summary = await openai.summarizeText(text);
-      const references = await hfService.extractReferences(text);
+      const summary = await agentOrchestrator.processRequest(
+        'summarize this document',
+        text
+      );
+      const references = await agentOrchestrator.processRequest(
+        'find references in this document',
+        text
+      );
 
       if (!summary || !references) {
         throw new Error('Failed to generate summary or references');
       }
 
-      return { text, summary, references };
+      return {
+        text,
+        summary: summary.message,
+        references: references.metadata?.references || [],
+      };
     } catch (error) {
       console.error('Processing error:', error);
       throw error;
