@@ -38,7 +38,7 @@ export class PdfService {
     try {
       const text = await this.extractTextFromPDF(filePath);
       const summary = await agentOrchestrator.processRequest(
-        'summarize this document',
+        'generate summary of this text',
         text
       );
       const references = await agentOrchestrator.processRequest(

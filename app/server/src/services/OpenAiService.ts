@@ -102,4 +102,37 @@ export class OpenAiService {
       throw new Error('Failed to generate summary');
     }
   }
+
+  async extractReferences(text: string): Promise<string[]> {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'chatgpt-4o-latest',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a research assistant that extracts references from academic texts. Return only the references list.',
+          },
+          {
+            role: 'user',
+            content: `Extract all references from this text:\n\n${text}`,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
+      });
+
+      const content = response.choices[0].message.content;
+      if (!content) return [];
+
+      // Split into array and clean up
+      return content
+        .split('\n')
+        .filter(ref => ref.trim().length > 0)
+        .map(ref => ref.trim());
+    } catch (error) {
+      console.error('OpenAI reference extraction error:', error);
+      throw new Error('Failed to extract references');
+    }
+  }
 }

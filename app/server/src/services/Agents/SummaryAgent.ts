@@ -9,7 +9,13 @@ export class SummaryAgent implements Agent {
   }
 
   canHandle(task: string): boolean {
-    const summaryKeywords = ['summarize', 'summary', 'brief', 'overview'];
+    const summaryKeywords = [
+      'summarize',
+      'summary',
+      'brief',
+      'overview',
+      'generate summary',
+    ];
     return summaryKeywords.some(keyword =>
       task.toLowerCase().includes(keyword)
     );
